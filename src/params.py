@@ -24,7 +24,7 @@ from src.setup import *
 ##########################################################################
 
 # timestepping
-Tend = T.constant(1.)
+Tend = theano.shared(1.)
 n_steps = theano.shared(100)
 dt = Tend/n_steps
 

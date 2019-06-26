@@ -101,5 +101,4 @@ def initialize(M,truncate_high_order_derivatives=False):
     # gradient, divergence, and Laplace-Beltrami
     M.grad = lambda x,f: M.sharp(x,T.grad(f(x),x))
     M.div = lambda x,X: T.nlinalg.trace(T.jacobian(X(x),x))+.5*T.dot(X(x),T.grad(linalg.LogAbsDet()(M.g(x)),x))
-    # M.div = lambda x,X: T.nlinalg.trace(T.jacobian(X(x),x))+T.dot(X(x),T.grad(T.log(T.sqrt(T.nlinalg.Det()(M.g(x)))),x))
     M.Laplacian = lambda x,f: M.div(x,lambda x: M.grad(x,f))

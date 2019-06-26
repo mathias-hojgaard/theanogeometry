@@ -151,7 +151,7 @@ def p_T_log_p_T(g, v, dWs, bridge_sde, phi, options, sigma=None, sde=None, chain
         # bridges
         def bridge_p_T(dWs, lp_T, lv):
             Cgv = T.sum(phi(g, lv) ** 2)
-            (ts, gs, log_likelihood, log_varphi, _) = bridge_sde(g, lv, dWs)            
+            (ts, gs, log_likelihood, log_varphi) = bridge_sde(g, lv, dWs)[:4]
             lp_T =  T.power(2.*np.pi*Tend,-.5*sigma.shape[0])/T.abs_(T.nlinalg.Det()(sigma))*T.exp(-Cgv/(2.*Tend))*T.exp(log_varphi[-1])
             lv = options['update_v'](lv)                        
             return (lp_T, lv)

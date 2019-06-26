@@ -48,6 +48,18 @@ class landmarks(Manifold):
             def k(x):
                 r = T.sqrt((1e-7+T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2)))
                 return self.k_alpha*2*(1+r)*T.exp(-r)
+        elif self.kernel is 'K2':
+            def k(x):
+                r = T.sqrt((1e-7+T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2)))
+                return self.k_alpha*4*(3+3*r+r**2)*T.exp(-r)
+        elif self.kernel is 'K3':
+            def k(x):
+                r = T.sqrt((1e-7+T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2)))
+                return self.k_alpha*8*(15+15*r+6*r**2+r**3)*T.exp(-r)
+        elif self.kernel is 'K4':
+            def k(x):
+                r = T.sqrt((1e-7+T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2)))
+                return self.k_alpha*16*(105+105*r+45*r**2+10*r**3+r**4)*T.exp(-r)
         else:
             raise Exception('unknown kernel specified')
         self.k = k
