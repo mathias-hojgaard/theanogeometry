@@ -28,7 +28,7 @@ export OMP_NUM_THREADS=1; THEANORC=.theanorc jupyter notebook
 
 Some features, e.g. higher-order landmarks, may require a 'Bleeding-Edge Installation' installation of Theano, see http://deeplearning.net/software/theano/install.html installation instructions.
 
-#### conda: (recommended)
+#### conda:
 Install miniconda for Python 3.6 (or higher) from https://conda.io/miniconda.html  
 Windows: Open the now installed 'Anaconda Prompt' program.  
 Create a new conda environment and activate it by issuing the following commands in the Anaconda prompt:
@@ -37,6 +37,7 @@ conda create -n theanogeometry python=3
 conda activate theanogeometry
 ```
 Use Conda to install the necessary packages:
+
 Linux:
 ```
 conda install git numpy scipy theano jupyter matplotlib multiprocess scikit-learn
@@ -51,6 +52,7 @@ git clone https://bitbucket.org/stefansommer/theanogeometry.git
 cd theanogeometry
 ```
 Start Jupyter:
+
 Linux (bash):
 ```
 export OMP_NUM_THREADS=1; THEANORC=.theanorc jupyter notebook
