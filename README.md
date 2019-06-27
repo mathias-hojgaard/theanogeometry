@@ -10,6 +10,8 @@ Please contact Stefan Sommer *sommer@di.ku.dk*
 
 ### Installation Instructions ###
 
+Please use Python 3.X.
+
 #### pip:
 Install numpy, scipy, theano, jupyter, matplotlib, multiprocess, sklearn:
 ```
@@ -21,6 +23,8 @@ virtualenv -p python3 .
 source bin/activate
 pip install numpy scipy theano jupyter matplotlib multiprocess sklearn
 ```
+If you don't use a virtual environment, be make sure that you are actually using Python 3, e.g. use pip3 instead of pip.
+
 Start jupyter notebook as in
 ```
 export OMP_NUM_THREADS=1; THEANORC=.theanorc jupyter notebook
