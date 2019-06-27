@@ -23,7 +23,7 @@ virtualenv -p python3 .
 source bin/activate
 pip install numpy scipy theano jupyter matplotlib multiprocess sklearn
 ```
-If you don't use a virtual environment, be make sure that you are actually using Python 3, e.g. use pip3 instead of pip.
+If you don't use a virtual environment, make sure that you are actually using Python 3, e.g. use pip3 instead of pip.
 
 Start jupyter notebook as in
 ```
