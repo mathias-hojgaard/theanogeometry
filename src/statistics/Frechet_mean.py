@@ -24,7 +24,8 @@ def Frechet_mean(M, Logf, y, x0=None, options=None):
     _M = M
 
     if x0 is None:
-        x0 = np.random.normal(size=M.dim.eval())
+        #x0 = np.random.normal(size=M.dim.eval())
+        x0 = np.mean(y,0)
 
     steps = []
     steps.append(x0)
