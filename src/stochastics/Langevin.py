@@ -37,7 +37,7 @@ def initialize(M):
 
     def sde_Langevin(dW,t,x,l,s):
         dqt = dq(x[0],x[1])
-        dpt = -l*dq(x[0],x[1])+dp(x[0],x[1])
+        dpt = dp(x[0],x[1])-l*dq(x[0],x[1])
 
         X = T.stack((T.zeros((M.dim,M.dim)),s*T.eye(M.dim)))
         det = T.stack((dqt,dpt))
