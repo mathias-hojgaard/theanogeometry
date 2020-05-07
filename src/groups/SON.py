@@ -122,7 +122,7 @@ class SON(LieGroup):
         ax.set_xlim(-1.,1.)
         ax.set_ylim(-1.,1.)
         ax.set_zlim(-1.,1.)
-        ax.set_aspect("equal")
+        #ax.set_aspect("equal")
    
         s0 = np.eye(3) # shape
         s = np.dot(g,s0) # rotated shape

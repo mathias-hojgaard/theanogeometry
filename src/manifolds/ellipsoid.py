@@ -126,7 +126,7 @@ class Ellipsoid(EmbeddedManifold):
         ax.set_xlim(-1.,1.)
         ax.set_ylim(-1.,1.)
         ax.set_zlim(-1.,1.)
-        ax.set_aspect("equal")
+        #ax.set_aspect("equal")
         if rotate is not None:
             ax.view_init(rotate[0],rotate[1])
     #     else:

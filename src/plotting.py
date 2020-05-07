@@ -49,7 +49,7 @@ def newfig3d(nrows=1,ncols=1,plot_number=1,new_figure=True):
         fig = plt.gcf()
     ax = fig.add_subplot(nrows,ncols,plot_number,projection='3d')
     ax.set_xlim3d(-1,1), ax.set_ylim3d(-1,1), ax.set_zlim3d(-1,1)
-    ax.set_aspect("equal")
+    #ax.set_aspect("equal")
     return (fig,ax)
 newfig = newfig3d # default
 
