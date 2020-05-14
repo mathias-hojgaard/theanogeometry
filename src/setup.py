@@ -17,6 +17,10 @@
 # along with Theano Geometry. If not, see <http://www.gnu.org/licenses/>.
 #
 
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 import theano
 import numpy as np
 import scipy as sp
