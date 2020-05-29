@@ -23,19 +23,29 @@ from src.utils import *
 def initialize(M):
     """ Riemannian parallel transport """
 
-    d = M.dim
-    x = M.element()
-    u = M.frame()
+    def ode_parallel_transport(x,chart,dx,t,xv,prevchart):
+        prevx = xv[0]
+        v = xv[1]
+        dx = theano.ifelse.ifelse(T.le(T.sum(T.square(chart-prevchart)),1e-5),
+                dx,
+                M.update_vector((x,chart),prevx,prevchart,dx)
+            )
+        dv = - T.tensordot(T.tensordot(dx, M.Gamma_g((x,chart)),axes = (0,1)),
+                            v, axes = (1,0))
+        return T.stack((T.zeros_like(x),dv))
+    
+    def chart_update_parallel_transport(t,xv,prevchart,x,chart,dx):
+        prevx = xv[0]
+        v = xv[1]
+        return (t,theano.ifelse.ifelse(T.le(T.sum(T.square(chart-prevchart)),1e-5),
+                                       T.stack((x,v)),
+                                       T.stack((x,M.update_vector((prevx,prevchart),x,chart,v)))),
+                chart)
 
-    def ode_parallel_transport(gamma,dgamma,t,x):
-        dpt = - T.tensordot(T.tensordot(dgamma, M.Gamma_g(gamma),axes = [0,1]),
-                            x, axes = [1,0])
-        return dpt
-
-    parallel_transport = lambda v,gamma,dgamma: integrate(ode_parallel_transport,v,gamma,dgamma)
-    M.parallel_transport = lambda v,gamma,dgamma: parallel_transport(v,gamma,dgamma)[1]
-    v = M.vector()
-    gamma = M.elements()
-    dgamma = M.vectors()
-    M.parallel_transportf = theano.function([v,gamma,dgamma], M.parallel_transport(v,gamma,dgamma))
-
+    parallel_transport = lambda v,xs,charts,dxs: integrate(ode_parallel_transport,chart_update_parallel_transport,T.stack((xs[0],v)),charts[0],xs,charts,dxs)
+    M.parallel_transport = lambda v,xs,charts,dxs: parallel_transport(v,xs,charts,dxs)[1][:,1]
+    v = M.sym_vector()
+    xs = M.sym_elements()
+    charts = M.sym_charts()
+    dxs = M.sym_vectors()
+    M.parallel_transportf = theano.function([v,xs,charts,dxs],M.parallel_transport(v,xs,charts,dxs))

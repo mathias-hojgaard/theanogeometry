@@ -20,21 +20,33 @@
 from src.setup import *
 from src.utils import *
 
-def initialize(M):
+def initialize(M,do_chart_update=None):
     """ Brownian motion in coordinates """
 
-    x = M.element()
-    dW = M.element()
+    x = M.sym_element()
+    dW = M.sym_element()
     t = T.scalar()
 
-    def sde_Brownian_coords(dW,t,x):
-        gsharpx = M.gsharp(x)
+    def sde_Brownian_coords(dW,t,x,chart):
+        gsharpx = M.gsharp((x,chart))
         X = theano.tensor.slinalg.Cholesky()(gsharpx)
-        det = -.5*T.tensordot(gsharpx,M.Gamma_g(x),((0,1),(0,1)))
+        det = -.5*T.tensordot(gsharpx,M.Gamma_g((x,chart)),((0,1),(0,1)))
         sto = T.tensordot(X,dW,(1,0))
         return (det,sto,X)
-    M.sde_Brownian_coords = sde_Brownian_coords
-    M.sde_Brownian_coordsf = theano.function([dW,t,x], M.sde_Brownian_coords(dW,t,x), on_unused_input = 'ignore') 
-    M.Brownian_coords = lambda x,dWt: integrate_sde(sde_Brownian_coords,integrator_ito,x,dWt)
-    M.Brownian_coordsf = theano.function([x,dWt], M.Brownian_coords(x,dWt))
+    
+    def chart_update_Brownian_coords(t,x,chart):
+        if do_chart_update is None:
+            return (t,x,chart)
 
+        new_chart = M.centered_chart(M.F((x,chart)))
+        new_x = M.update_coords((x,chart),new_chart)[0]
+
+        return theano.ifelse.ifelse(do_chart_update((x,chart)),
+                (t,x,chart),
+                (t,new_x,new_chart)
+            )
+    
+    M.sde_Brownian_coords = sde_Brownian_coords
+    M.chart_update_Brownian_coords = chart_update_Brownian_coords
+    M.Brownian_coords = lambda x,dWt: integrate_sde(sde_Brownian_coords,integrator_ito,chart_update_Brownian_coords,x[0],x[1],dWt)
+    M.Brownian_coordsf = M.coords_function(M.Brownian_coords,dWt)

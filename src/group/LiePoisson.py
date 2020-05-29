@@ -25,24 +25,24 @@ def initialize(G):
 
     assert(G.invariance == 'left')
 
-    g = G.element() # \RR^{NxN} matrix
-    q = G.Vvector() # element in psi coordinates
-    v = G.coordsvector() # \RR^G_dim tangent vector in coordinates
-    mu = G.Vcovector() # \RR^G_dim LA cotangent vector in coordinates
+    g = G.sym_element() # \RR^{NxN} matrix
+    q = G.sym_Vvector() # element in psi coordinates
+    v = G.sym_coordsvector() # \RR^G_dim tangent vector in coordinates
+    mu = G.sym_Vcovector() # \RR^G_dim LA cotangent vector in coordinates
 
     def ode_LP(t,mu):
         dmut = G.coad(G.dHminusdmu(mu),mu)
         return dmut
-    G.LP = lambda mu: integrate(ode_LP,mu)
+    G.LP = lambda mu: integrate(ode_LP,None,mu,None)
     G.LPf = theano.function([mu], G.LP(mu))
 
     # reconstruction
     def ode_LPrec(mu,t,g):
         dgt = G.dL(g,G.e,G.VtoLA(G.dHminusdmu(mu)))
         return dgt
-    G.LPrec = lambda g,mus: integrate(ode_LPrec,g,mus)
+    G.LPrec = lambda g,mus: integrate(ode_LPrec,None,g,None,mus)
     mus = T.matrix() # mu for each time step
-    G.LPrecf = theano.function([g,mus], G.LPrec(g,mus))
+    G.LPrecf = G.function(G.LPrec,mus)
 
     ### geodesics
     G.coExpLP = lambda g,mu: G.LPrec(g,G.LP(mu)[1])[1][-1]
@@ -53,10 +53,10 @@ def initialize(G):
         T.jacobian(G.coExp(g,mu).flatten(),g).reshape(G.N,G.N,G.N,G.N),
         T.jacobian(G.coExp(g,mu).flatten(),mu).reshape(G.N,G.N,G.dim)
         )
-    G.ExpLPf = theano.function([g,v], G.ExpLP(g,v))
-    G.ExpLPtf = theano.function([g,v], G.ExpLPt(g,v))
-    G.coExpLPf = theano.function([g,mu], G.coExpLP(g,mu))
-    G.coExpLPtf = theano.function([g,mu], G.coExpLPt(g,mu))
+    G.ExpLPf = G.function(G.ExpLP,v)
+    G.ExpLPtf = G.function(G.ExpLPt,v)
+    G.coExpLPf = G.function(G.coExpLP,mu)
+    G.coExpLPtf = G.function(G.coExpLPt,mu)
     #loss = 1./G_emb_dim*T.sum(T.sqr(Exp(g,mu)-h))
     #dloss = (T.grad(loss,g),T.grad(loss,g))
     #lossf = theano.function([g,mu,h], loss)

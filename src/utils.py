@@ -37,7 +37,7 @@ def scalar(x):
     return np.float32(x) if theano.config.floatX == 'float32' else np.float64(x)
 def tensor(x):
     """ return tensor of the default Theano type """
-    return x.astype(theano.config.floatX)
+    return np.array(x).astype(theano.config.floatX)
 def constant(c):
     """ return Theano constant with value of parameter c """
     if isinstance(c,int):
@@ -70,17 +70,25 @@ def get_minimizer(f,method=None,options=None):
     return (lambda x0: minimize(fopt, x0, method=method, jac=True, options=None))
 
 # Integrator (non-stochastic)
-def integrator(ode_f,method=default_method):
+def integrator(ode_f,method=default_method,use_charts=False,chart_update=None):
+    if chart_update == None: # no chart update
+        chart_update = lambda *args: args
 
     # euler:
     def euler(*y):
-        t = y[-2]
-        x = y[-1]
-        return (t+dt,x+dt*ode_f(*y))
+        if not use_charts:
+            t = y[-2]
+            x = y[-1]
+            return (t+dt,x+dt*ode_f(*y))
+        else:
+            t = y[-3]
+            x = y[-2]
+            chart = y[-1]
+            return chart_update(t+dt,x+dt*ode_f(*y),chart,*y[0:-3])
 
     # Runge-kutta:
-    def integrator_rk4(ode_f):
-        def rk4(*y):
+    def rk4(*y):
+        if not use_charts:
             t = y[-2]
             x = y[-1]
             k1 = ode_f(y[0:-2],t,x)
@@ -88,6 +96,15 @@ def integrator(ode_f,method=default_method):
             k3 = ode_f(y[0:-2],t+dt/2,x + dt/2*k2)
             k4 = ode_f(y[0:-2],t,x + dt*k3)
             return (t+dt,x + dt/6*(k1 + 2*k2 + 2*k3 + k4))
+        else:
+            t = y[-3]
+            x = y[-2]
+            chart = y[-1]
+            k1 = ode_f(y[0:-2],t,x)
+            k2 = ode_f(y[0:-2],t+dt/2,x + dt/2*k1)
+            k3 = ode_f(y[0:-2],t+dt/2,x + dt/2*k2)
+            k4 = ode_f(y[0:-2],t,x + dt*k3)
+            return chart_update(t+dt,x + dt/6*(k1 + 2*k2 + 2*k3 + k4),chart,*y[0:-3])
 
     if method == 'euler':
         return euler
@@ -97,11 +114,17 @@ def integrator(ode_f,method=default_method):
         assert(False)
 
 # return symbolic path given ode and integrator
-def integrate(ode,x,*y):
-    (cout, updates) = theano.scan(fn=integrator(ode),
-            outputs_info=[constant(0.),x],
-            sequences=[*y],
-            n_steps=n_steps)
+def integrate(ode,chart_update,x,chart,*y):
+    if chart is None:
+        (cout, updates) = theano.scan(fn=integrator(ode),
+                outputs_info=[constant(0.),x],
+                sequences=[*y],
+                n_steps=n_steps)
+    else:
+        (cout, updates) = theano.scan(fn=integrator(ode,use_charts=True,chart_update=chart_update),
+                outputs_info=[constant(0.),x,chart],
+                sequences=[*y],
+                n_steps=n_steps)
     return cout
 
 # sde functions should return (det,sto,Sigma) where
@@ -116,33 +139,64 @@ d = T.scalar(dtype='int64')
 dWsf = theano.function([d],dWs(d))
 del d
 
-def integrator_stratonovich(sde_f):
-    def euler_heun(dW,t,x,*ys):
-        (detx, stox, X, *dys) = sde_f(dW,t,x,*ys)
-        tx = x + stox
-        ys_new = ()
-        for (y,dy) in zip(ys,dys):
-            ys_new = ys_new + (y+dt*dy,)
-        return (t+dt,x + dt*detx + 0.5*(stox + sde_f(dW,t+dt,tx,*ys)[1]), *ys_new)
+def integrate_sde(sde,integrator,chart_update,x,chart,dWt,*ys):
+    if chart is None:
+        (cout, updates) = theano.scan(fn=integrator(sde),
+                outputs_info=[constant(0.),x,*ys],
+                sequences=[dWt],
+                n_steps=n_steps)
+    else:
+        (cout, updates) = theano.scan(fn=integrator(sde,use_charts=True,chart_update=chart_update),
+                outputs_info=[constant(0.),x,chart,*ys],
+                sequences=[dWt],
+                n_steps=n_steps)
+    return cout
+
+def integrator_stratonovich(sde_f,use_charts=False,chart_update=None):
+    if chart_update == None: # no chart update
+        chart_update = lambda *args: args
+
+    def euler_heun(*y):
+        if not use_charts:
+            (dW,t,x,*ys) = y
+            (detx, stox, X, *dys) = sde_f(dW,t,x,*ys)
+            tx = x + stox
+            ys_new = ()
+            for (y,dy) in zip(ys,dys):
+                ys_new = ys_new + (y+dt*dy,)
+            return (t+dt,x + dt*detx + 0.5*(stox + sde_f(dW,t+dt,tx,*ys)[1]), *ys_new)
+        else:
+            (dW,t,x,chart,*ys) = y
+            (detx, stox, X, *dys) = sde_f(dW,t,x,chart,*ys)
+            tx = x + stox
+            ys_new = ()
+            for (y,dy) in zip(ys,dys):
+                ys_new = ys_new + (y+dt*dy,)
+            return chart_update(t+dt,x + dt*detx + 0.5*(stox + sde_f(dW,t+dt,tx,chart,*ys)[1]), chart, *ys_new)
 
     return euler_heun
 
-def integrator_ito(sde_f):
-    def euler(dW,t,x,*ys):
-        (detx, stox, X, *dys) = sde_f(dW,t,x,*ys)
-        ys_new = ()
-        for (y,dy) in zip(ys,dys):
-            ys_new = ys_new + (y+dt*dy,)
-        return (t+dt,x + dt*detx + stox, *ys_new)
+def integrator_ito(sde_f,use_charts=False,chart_update=None):
+    if chart_update == None: # no chart update
+        chart_update = lambda *args: args
+
+    def euler(*y):
+        if not use_charts:
+            (dW,t,x,*ys) = y
+            (detx, stox, X, *dys) = sde_f(dW,t,x,*ys)
+            ys_new = ()
+            for (y,dy) in zip(ys,dys):
+                ys_new = ys_new + (y+dt*dy,)
+            return (t+dt,x + dt*detx + stox)
+        else:
+            (dW,t,x,chart,*ys) = y
+            (detx, stox, X, *dys) = sde_f(dW,t,x,chart,*ys)
+            ys_new = ()
+            for (y,dy) in zip(ys,dys):
+                ys_new = ys_new + (y+dt*dy,)
+            return chart_update(t+dt,x + dt*detx + stox, chart, *ys_new)
 
     return euler
-
-def integrate_sde(sde,integrator,x,dWt,*ys):
-    (cout, updates) = theano.scan(fn=integrator(sde),
-            outputs_info=[constant(0.),x, *ys],
-            sequences=[dWt],
-            n_steps=n_steps)
-    return cout
 
 ## Gram-Schmidt:
 def GramSchmidt_f(innerProd):
@@ -164,5 +218,10 @@ def GramSchmidt_f(innerProd):
 
     return GS
 
+def cross(a, b):
+    return T.as_tensor([
+        a[1]*b[2] - a[2]*b[1],
+        a[2]*b[0] - a[0]*b[2],
+        a[0]*b[1] - a[1]*b[0]]) 
 
 

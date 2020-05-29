@@ -26,7 +26,7 @@ def initialize(M):
     t = T.scalar()
     dgamma = T.matrix() # velocity of Euclidean curve
     dsm = T.matrix() # derivative of Euclidean semimartingale
-    u = M.FM_element()
+    u = M.sym_FM_element()
     d = M.dim
 
     # Deterministic development
@@ -57,3 +57,4 @@ def initialize(M):
     M.stochastic_development = lambda u,dsm: integrate_sde(sde_development,integrator_stratonovich,u,dsm)
     M.stochastic_developmentf = theano.function([u,dsm], M.stochastic_development(u,dsm))
 
+initialize(M)

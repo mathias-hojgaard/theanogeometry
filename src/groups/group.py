@@ -38,24 +38,24 @@ class LieGroup(EmbeddedManifold):
     def initialize(self):
         """ Initial group operations. To be called by sub-classes after definition of dimension, Expm etc. """
         self.zeroV = T.zeros((self.dim,)) # zero element in V
-        hatxi = self.Vvector() # \RR^G_dim vector
-        xi = self.LAvector() # matrix in LA
-        eta = self.LAvector() # matrix in LA
-        alpha = self.LAcovector() # matrix in LA^*
-        beta = self.LAcovector() # matrix in LA^*
-        g = self.element() # \RR^{NxN} matrix
-        gs = self.elements() # sequence of \RR^{NxN} matrices
-        h = self.element() # \RR^{NxN} matrix
-        vg = self.vector() # \RR^{NxN} tangent vector at g
-        wg = self.vector() # \RR^{NxN} tangent vector at g
-        vh = self.vector() # \RR^{NxN} tangent vector at h
-        w = self.coordsvector() # \RR^G_dim tangent vector in coordinates
-        v = self.coordsvector() # \RR^G_dim tangent vector in coordinates
-        pg = self.covector() # \RR^{NxN} cotangent vector at g
-        ph = self.covector() # \RR^{NxN} cotangent vector at h
-        p = self.coordscovector() # \RR^G_dim cotangent vector in coordinates
-        pp = self.coordscovector() # \RR^G_dim cotangent vector in coordinates
-        mu = self.Vcovector() # \RR^G_dim LA cotangent vector in coordinates
+        hatxi = self.sym_Vvector() # \RR^G_dim vector
+        xi = self.sym_LAvector() # matrix in LA
+        eta = self.sym_LAvector() # matrix in LA
+        alpha = self.sym_LAcovector() # matrix in LA^*
+        beta = self.sym_LAcovector() # matrix in LA^*
+        g = self.sym_element() # \RR^{NxN} matrix
+        gs = self.sym_elements() # sequence of \RR^{NxN} matrices
+        h = self.sym_element() # \RR^{NxN} matrix
+        vg = self.sym_vector() # \RR^{NxN} tangent vector at g
+        wg = self.sym_vector() # \RR^{NxN} tangent vector at g
+        vh = self.sym_vector() # \RR^{NxN} tangent vector at h
+        w = self.sym_coordsvector() # \RR^G_dim tangent vector in coordinates
+        v = self.sym_coordsvector() # \RR^G_dim tangent vector in coordinates
+        pg = self.sym_covector() # \RR^{NxN} cotangent vector at g
+        ph = self.sym_covector() # \RR^{NxN} cotangent vector at h
+        p = self.sym_coordscovector() # \RR^G_dim cotangent vector in coordinates
+        pp = self.sym_coordscovector() # \RR^G_dim cotangent vector in coordinates
+        mu = self.sym_Vcovector() # \RR^G_dim LA cotangent vector in coordinates
 
         # compile group specific chart functions
         self.VtoLAf = theano.function([hatxi], self.VtoLA(hatxi))
@@ -195,55 +195,55 @@ class LieGroup(EmbeddedManifold):
         self.invcopff = theano.function([g,alpha],self.invcopf(g,alpha))
         self.infgenf = theano.function([xi,g],self.infgen(xi,g))
 
-    def element(self):
+    def sym_element(self):
         """ return symbolic element in manifold """
         return T.matrix()
 
-    def elements(self):
+    def sym_elements(self):
         """ return symbolic sequence of elements in manifold """
         return T.tensor3()
 
-    def coords(self):
+    def sym_coords(self):
         """ return symbolic coordinate representation of point in manifold """
         return T.vector()
 
-    def vector(self):
+    def sym_vector(self):
         """ return symbolic tangent vector """
         return T.matrix()
 
-    def vectors(self):
+    def sym_vectors(self):
         """ return symbolic sequence of tangent vector """
         return T.tensor3()
 
-    def covector(self):
+    def sym_covector(self):
         """ return symbolic cotangent vector """
         return T.matrix()
 
-    def coordsvector(self):
+    def sym_coordsvector(self):
         """ return symbolic tangent vector in coordinate representation """
         return T.vector()
 
-    def coordscovector(self):
+    def sym_coordscovector(self):
         """ return symbolic cotangent vector in coordinate representation """
         return T.vector()
 
-    def frame(self):
+    def sym_frame(self):
         """ return symbolic frame for tangent space """
         return T.tensor3()
 
-    def LAvector(self):
+    def sym_LAvector(self):
         """ return symbolic Lie Algebra vector """
         return T.matrix()
 
-    def LAcovector(self):
+    def sym_LAcovector(self):
         """ return symbolic Lie Algebra covector """
         return T.matrix()
 
-    def Vvector(self):
+    def sym_Vvector(self):
         """ return symbolic vector in V vector space (basis representation of Lie Algebra) """
         return T.vector()
 
-    def Vcovector(self):
+    def sym_Vcovector(self):
         """ return symbolic covector in V vector space (basis representation of Lie Algebra) """
         return T.vector()
 

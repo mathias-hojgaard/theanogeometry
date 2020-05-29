@@ -19,15 +19,14 @@
 
 from src.setup import *
 from src.utils import *
-
 def initialize(M):
     """ Riemannian curvature tensor """
 
     d = M.dim
-    x = M.element()
-    nu = M.frame()
-    e1 = M.vector()
-    e2 = M.vector()
+    x = M.sym_element()
+    nu = M.sym_frame()
+    e1 = M.sym_vector()
+    e2 = M.sym_vector()
     
     """
     Riemannian Curvature tensor
@@ -42,11 +41,11 @@ def initialize(M):
         return (
                 T.tensordot(M.Gamma_g(x),M.Gamma_g(x),(0,2)).dimshuffle(3,0,1,2) 
                 - T.tensordot(M.Gamma_g(x),M.Gamma_g(x),(0,2)).dimshuffle(0,3,1,2) 
-                +  T.jacobian(M.Gamma_g(x).flatten(),x).reshape((d,d,d,d)).dimshuffle(3,1,2,0)
-                -  T.jacobian(M.Gamma_g(x).flatten(),x).reshape((d,d,d,d)).dimshuffle(1,3,2,0) 
+                +  T.jacobian(M.Gamma_g(x).flatten(),x[0]).reshape((d,d,d,d)).dimshuffle(3,1,2,0)
+                -  T.jacobian(M.Gamma_g(x).flatten(),x[0]).reshape((d,d,d,d)).dimshuffle(1,3,2,0) 
                 )
     M.R = R
-    M.Rf = theano.function([x], R(x))
+    M.Rf = M.coords_function(R)
 
     """
     Riemannian Curvature form
@@ -62,7 +61,7 @@ def initialize(M):
     def R_u(x,u):
         return T.tensordot(T.nlinalg.matrix_inverse(u),T.tensordot(R(x),u,(2,0)),(1,2)).dimshuffle(1,2,0,3)
     M.R_u = R_u
-    M.R_uf = theano.function([x,nu], R_u(x,nu))
+    M.R_uf = M.coords_function(R_u,nu)
 
     """
     Sectional curvature
@@ -87,7 +86,7 @@ def initialize(M):
                 e1, [0,0])
         return sec
     M.sec_curv = sec_curv
-    M.sec_curvf = theano.function([x,e1,e2],sec_curv(x,e1,e2))
+    M.sec_curvf = M.coords_function(sec_curv,e1,e2)
 
     """
     Ricci curvature
@@ -100,7 +99,7 @@ def initialize(M):
     """
     Ricci_curv = lambda x: T.tensordot(M.R(x),T.eye(M.dim),((0,3),(0,1)))
     M.Ricci_curv = Ricci_curv
-    M.Ricci_curvf = theano.function([x],Ricci_curv(x))
+    M.Ricci_curvf = M.coords_function(Ricci_curv)
 
     """
     Scalar curvature
@@ -113,4 +112,5 @@ def initialize(M):
     """
     S_curv = lambda x: T.tensordot(M.Ricci_curv(x),M.gsharp(x),((0,1),(0,1)))
     M.S_curv = S_curv
-    M.S_curvf = theano.function([x],S_curv(x))
+    M.S_curvf = M.coords_function(S_curv)
+

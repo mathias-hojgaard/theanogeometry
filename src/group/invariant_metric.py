@@ -23,16 +23,16 @@ from src.utils import *
 def initialize(G):
     """ add left-/right-invariant metric related structures to group """
 
-    g = G.element()
-    hatxi = G.Vvector() # \RR^G_dim vector
-    vg = G.vector() # \RR^{NxN} tangent vector at g
-    wg = G.vector() # \RR^{NxN} tangent vector at g
-    pg = G.covector() # \RR^{NxN} cotangent vector at g
-    xiv = G.LAvector()
-    xiw = G.LAvector()
-    w = G.coordsvector() # \RR^G_dim tangent vector in coordinates
-    v = G.coordsvector() # \RR^G_dim tangent vector in coordinates
-    mu = G.Vcovector() # \RR^G_dim LA cotangent vector in coordinates
+    g = G.sym_element()
+    hatxi = G.sym_Vvector() # \RR^G_dim vector
+    vg = G.sym_vector() # \RR^{NxN} tangent vector at g
+    wg = G.sym_vector() # \RR^{NxN} tangent vector at g
+    pg = G.sym_covector() # \RR^{NxN} cotangent vector at g
+    xiv = G.sym_LAvector()
+    xiw = G.sym_LAvector()
+    w = G.sym_coordsvector() # \RR^G_dim tangent vector in coordinates
+    v = G.sym_coordsvector() # \RR^G_dim tangent vector in coordinates
+    mu = G.sym_Vcovector() # \RR^G_dim LA cotangent vector in coordinates
 
     G.sigma = theano.shared(np.eye(G.dim.eval(),G.dim.eval())) # square root cometric / diffusion field
     G.sqrtA = G.inv(G.sigma) # square root metric
@@ -93,11 +93,11 @@ def initialize(G):
             return T.tensordot(invgpsi,p,(1,0))
         return invgpsi
     G.cogpsi = cogpsi
-    G.gGf = theano.function([g,vg,wg],G.gG(g,vg,wg))
+    G.gGf = G.function(G.gG,vg,wg)
     G.gpsi_evf = theano.function([hatxi,v,w],G.gpsi(hatxi,v,w))
     G.gpsif = theano.function([hatxi],G.gpsi(hatxi))
-    p = G.coordscovector() # \RR^G_dim cotangent vector in coordinates
-    pp = G.coordscovector() # \RR^G_dim cotangent vector in coordinates
+    p = G.sym_coordscovector() # \RR^G_dim cotangent vector in coordinates
+    pp = G.sym_coordscovector() # \RR^G_dim cotangent vector in coordinates
     G.cogpsi_evf = theano.function([hatxi,p,pp],G.cogpsi(hatxi,p,pp))
     G.cogpsif = theano.function([hatxi],G.cogpsi(hatxi))
     G.gLAf = theano.function([xiv,xiw],G.gLA(xiv,xiw))
@@ -124,8 +124,8 @@ def initialize(G):
     G.flatpsi = flatpsi
     G.sharpVf = theano.function([mu],G.sharpV(mu))
     G.flatVf = theano.function([v],G.flatV(v))
-    G.sharpf = theano.function([g,pg],G.sharp(g,pg))
-    G.flatf = theano.function([g,vg],G.flat(g,vg))
+    G.sharpf = G.function(G.sharp,pg)
+    G.flatf = G.function(G.flat,vg)
     G.sharppsif = theano.function([hatxi,p],G.sharppsi(hatxi,p))
     G.flatpsif = theano.function([hatxi,v],G.flatpsi(hatxi,v))
 

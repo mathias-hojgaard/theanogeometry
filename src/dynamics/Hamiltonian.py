@@ -23,94 +23,50 @@ from src.utils import *
 ###############################################################
 # geodesic integration, Hamiltonian form                      #
 ###############################################################
-
-def initialize(M):
-    q = M.coords()
-    p = M.coordscovector()
+def initialize(M,do_chart_update=None):
+    q = M.sym_coords()
+    p = M.sym_coordscovector()
 
     dq = lambda q,p: T.grad(M.H(q,p),p)
-    dp = lambda q,p: -T.grad(M.H(q,p),q)
+    dp = lambda q,p: -T.grad(M.H(q,p),q[0])
 
-    def ode_Hamiltonian(t,x):
-        dqt = dq(x[0],x[1])
-        dpt = dp(x[0],x[1])
+    def ode_Hamiltonian(t,x,chart):
+        dqt = dq((x[0],chart),x[1])
+        dpt = dp((x[0],chart),x[1])
         return T.stack((dqt,dpt))
-    M.Hamiltonian_dynamics = lambda q,p: integrate(ode_Hamiltonian,T.stack((q,p)))
-    M.Hamiltonian_dynamicsf = theano.function([q,p], M.Hamiltonian_dynamics(q,p))
+
+    def chart_update_Hamiltonian(t,xp,chart):
+        if do_chart_update is None:
+            return (t,xp,chart)
+
+        p = xp[1]
+        x = (xp[0],chart)
+
+        new_chart = M.centered_chart(M.F(x))
+        new_x = M.update_coords(x,new_chart)[0]
+        new_p = M.update_covector(x,new_x,new_chart,p)
+        
+        return theano.ifelse.ifelse(do_chart_update(x),
+                (t,xp,chart),
+                (t,T.stack((new_x,new_p)),new_chart)
+            )
+
+    M.Hamiltonian_dynamics = lambda q,p: integrate(ode_Hamiltonian,chart_update_Hamiltonian,T.stack((q[0],p)), q[1])
+    M.Hamiltonian_dynamicsf = M.coords_function(M.Hamiltonian_dynamics,p)
 
     ## Geodesic
-    M.Exp_Hamiltonian = lambda q,p: M.Hamiltonian_dynamics(q,p)[1][-1,0]
-    M.Exp_Hamiltoniant = lambda q,p: M.Hamiltonian_dynamics(q,p)[1][:,0].dimshuffle((1,0))
-    M.Exp_Hamiltonianf = theano.function([q,p], M.Exp_Hamiltonian(q,p))
-    M.Exp_Hamiltoniantf = theano.function([q,p], M.Exp_Hamiltoniant(q,p))
+    def Exp_Hamiltonian(q,p):
+        curve = M.Hamiltonian_dynamics(q,p)
+        q = curve[1][-1,0]
+        chart = curve[2][-1]
+        return(q,chart)
+    M.Exp_Hamiltonian = Exp_Hamiltonian
+    M.Exp_Hamiltonianf = M.coords_function(M.Exp_Hamiltonian,p)
+    def Exp_Hamiltoniant(q,p):
+        curve = M.Hamiltonian_dynamics(q,p)
+        q = curve[1][:,0].dimshuffle((1,0))
+        chart = curve[2]
+        return(q,chart)
+    M.Exp_Hamiltoniant = Exp_Hamiltoniant
+    M.Exp_Hamiltoniantf = M.coords_function(M.Exp_Hamiltoniant,p)
 
-    ## Group geodesics
-    #try:
-    #    Exppsi = lambda q,v: Ham(q,flatpsi(q,v))[1][-1,0]
-    #    Exptpsi = lambda q,v: Ham(q,flatpsi(q,v))[1][:,0]
-    #    DExppsi = lambda q,v: (
-    #        T.jacobian(Ham(q,flatpsi(q,v))[1][-1,0].flatten(),q).reshape(N,N,G_dim),
-    #        T.jacobian(Ham(q,flatpsi(q,v))[1][-1,0].flatten(),v).reshape(N,N,G_dim)
-    #        )
-    #    Exp = lambda g,vg: invtrns(g,psi(Ham(zeroV,LAtoV(invpb(g,vg)))[1][-1,0]))
-    #    Expt = lambda g,vg: invtrns(g,psi(Ham(zeroV,LAtoV(invpb(g,vg)))[1][:,0].dimshuffle((1,0))))
-    #    loss = 1./G_emb_dim*T.sum(T.sqr(Exp(g,vg)-h))
-    #    losspsi = 1./G_emb_dim*T.sum(T.sqr(Exppsi(q,v)-h))
-    #    dlosspsi = (T.grad(losspsi,q),T.grad(losspsi,v))
-    #    Expf = theano.function([g,vg], Exp(g,vg))
-    #    Exppsif = theano.function([q,v], Exppsi(q,v))
-    #    Exptpsif = theano.function([q,v], Exptpsi(q,v))
-    #    #lossf = theano.function([g,vg,h], loss)
-    #    #losspsif = theano.function([q,v,h], losspsi)
-    #    #dlosspsif = theano.function([q,v,h], [losspsi, dlosspsi[0], dlosspsi[1]])
-    #except NameError:
-    #    pass
-
-    #
-##### Evolution equations:
-#dq = lambda q,p: T.grad(H(q,p),p) # Evolution equation for point q in FM.
-#dp = lambda q,p: -T.grad(H(q,p),q) # Evolution equation for covector p in FM.
-#dqf = theano.function([q,p], dq(q,p))
-#dpf = theano.function([q,p], dp(q,p))
-#
-#def ode_f(qp): # Evolution equations at (p,q).
-#    dqt = dq(qp[0],qp[1])
-#    dpt = dp(qp[0],qp[1])
-#
-#    return T.stack((dqt,dpt))
-#ode_ff = theano.function([qp], ode_f(qp))
-#
-#(cout, updates) = theano.scan(fn=integrator(ode_f),
-#                              outputs_info=[qp],
-#                              n_steps=n_steps)
-#
-## Compile the Path Evolution:
-#simf = function(inputs=[qp],
-#                outputs=cout,
-#                updates=updates)
-#
-##### Geodesics on M:
-#def Geodesic(q0,p0):
-#    gamma_t = simf(np.stack((q0,p0)))
-#    return (gamma_t[:,0])
-#
-#
-#def development(gamma0,q0):
-#    gamma_t = simfdev(gamma0,q0)
-#    return (gamma_t)
-#
-#
-
-## shooting
-#from scipy.optimize import minimize,fmin_bfgs,fmin_cg
-#
-#def shoot(g,h):
-#    def fopts(x):
-#        [y,gy] = dlossf(np.stack([q0,x.reshape([N.eval(),G_dim])]).astype(theano.config.floatX))
-#        return (y,gy[1].flatten())
-#
-#    res = minimize(fopts, p0.flatten(), method='L-BFGS-B', jac=True, options={'disp': False, 'maxiter': maxiter})
-#
-#    return(res.x,res.fun)
-#Logf = lambda g,h: shoot(g,h)
-#Logpsif = lambda hatm,hata: shoot(psi(hatm),psi(hata))

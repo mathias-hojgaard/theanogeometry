@@ -31,8 +31,8 @@ def initialize(M,truncate_high_order_derivatives=False):
             return e
 
     d = M.dim
-    x = M.element()
-    u = T.matrix()
+    #x = M.element()
+    #u = T.matrix()
 
     if hasattr(M, 'g'):
         if not hasattr(M, 'gsharp'):
@@ -42,61 +42,59 @@ def initialize(M,truncate_high_order_derivatives=False):
             M.g = lambda x: T.nlinalg.matrix_inverse(M.gsharp(x))
     else:
         raise ValueError('no metric or cometric defined on manifold')
-    M.gf = theano.function([x],M.g(x))
-    M.gsharpf = theano.function([x],M.gsharp(x))
+    M.gf = M.coords_function(M.g)
+    M.gsharpf = M.coords_function(M.gsharp)
 
-
-    M.Dg = lambda x: T.jacobian(M.g(x).flatten(),x).reshape((d,d,d)) # Derivative of metric
-    M.Dgf = theano.function([x],M.Dg(x))
+    M.Dg = lambda x: T.jacobian(M.g(x).flatten(),x[0]).reshape((d,d,d)) # Derivative of metric
+    M.Dgf = M.coords_function(M.Dg)
 
     ##### Measure
     M.mu_Q = lambda x: 1./T.nlinalg.Det()(M.g(x))
-    M.mu_Qf = theano.function([x],M.mu_Q(x))
+    M.mu_Qf = M.coords_function(M.mu_Q)
 
     ### Determinant
     M.determinant = lambda x,A: T.nlinalg.Det()(T.tensordot(M.g(x),A,(1,0)))
     M.LogAbsDeterminant = lambda x,A: LogAbsDet()(T.tensordot(M.g(x),A,(1,0)))
     A = T.matrix()
-    M.Determinantf = theano.function([x,A],M.determinant(x,A))
-    M.LogAbsDeterminantf = theano.function([x,A],M.LogAbsDeterminant(x,A))
+    M.Determinantf = M.coords_function(M.determinant,A)
+    M.LogAbsDeterminantf = M.coords_function(M.LogAbsDeterminant,A)
 
     ##### Sharp and flat map:
 #    M.Dgsharp = lambda q: T.jacobian(M.gsharp(q).flatten(),q).reshape((d,d,d)) # Derivative of sharp map
-    v = M.vector()
-    p = M.covector()
+    v = M.sym_vector()
+    p = M.sym_covector()
     M.flat = lambda x,v: T.dot(M.g(x),v)
-    M.flatf = theano.function([x,v], M.flat(x,v))
+    M.flatf = M.coords_function(M.flat,v)
     M.sharp = lambda x,p: T.dot(M.gsharp(x),p)
-    M.sharpf = theano.function([x,p], M.sharp(x,p))
+    M.sharpf = M.coords_function(M.sharp,p)
 
     ##### Christoffel symbols
     M.Gamma_g = lambda x: 0.5*(T.tensordot(M.gsharp(x),truncate_derivatives(M.Dg(x)),axes = [1,0])
                    +T.tensordot(M.gsharp(x),truncate_derivatives(M.Dg(x)),axes = [1,0]).dimshuffle(0,2,1)
                    -T.tensordot(M.gsharp(x),truncate_derivatives(M.Dg(x)),axes = [1,2]))
-    M.Gamma_gf = theano.function([x],M.Gamma_g(x))
+    M.Gamma_gf = M.coords_function(M.Gamma_g)
 
     # Inner Product from g
-    w = M.vector()
+    w = M.sym_vector()
     M.dot = lambda x,v,w: T.dot(T.dot(M.g(x),w),v)
-    M.dotf = theano.function([x,v,w],M.dot(x,v,w))
+    M.dotf = M.coords_function(M.dot,v,w)
     M.norm = lambda x,v: T.sqrt(M.dot(x,v,v))
-    M.normf = theano.function([x,v],M.norm(x,v))
-    pp = M.covector()
+    M.normf = M.coords_function(M.norm,v)
+    pp = M.sym_covector()
     M.dotsharp = lambda x,p,pp: T.dot(T.dot(M.gsharp(x),pp),p)
-    M.dotsharpf = theano.function([x,p,pp],M.dotsharp(x,pp,p))
+    M.dotsharpf = M.coords_function(M.dotsharp,pp,p)
     M.conorm = lambda x,p: T.sqrt(M.dotsharp(x,p,p))
-    M.conormf = theano.function([x,p],M.conorm(x,p))
+    M.conormf = M.coords_function(M.conorm,p)
 
     ##### Gram-Schmidt and basis
     M.gramSchmidt = lambda x,u: (GramSchmidt_f(M.dotf))(x,u)
     M.orthFrame = lambda x: T.slinalg.Cholesky()(M.gsharp(x))
-    M.orthFramef = theano.function([x],M.orthFrame(x))
+    M.orthFramef = M.coords_function(M.orthFrame)
 
     ##### Hamiltonian
-    q = M.element()
-    p = M.covector()
+    p = M.sym_covector()
     M.H = lambda q,p: 0.5*T.dot(p,T.dot(M.gsharp(q),p))
-    M.Hf = theano.function([q,p],M.H(q,p))
+    M.Hf = M.coords_function(M.H,p)
 
     # gradient, divergence, and Laplace-Beltrami
     M.grad = lambda x,f: M.sharp(x,T.grad(f(x),x))

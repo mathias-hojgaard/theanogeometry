@@ -25,7 +25,7 @@ def initialize(G):
 
     #assert(G.invariance == 'left')
 
-    g = G.element() # \RR^{NxN} matrix
+    g = G.sym_element() # \RR^{NxN} matrix
 
     def sde_Brownian_inv(dW,t,g):
         X = T.tensordot(G.invpf(g,G.eiLA),G.sigma,(2,0))
@@ -33,6 +33,6 @@ def initialize(G):
         sto = T.tensordot(X,dW,(2,0))
         return (det,sto,X)
     G.sde_Brownian_inv = sde_Brownian_inv
-    G.Brownian_inv = lambda g,dWt: integrate_sde(G.sde_Brownian_inv,integrator_stratonovich,g,dWt)
-    G.Brownian_invf = theano.function([g,dWt], G.Brownian_inv(g,dWt))
+    G.Brownian_inv = lambda g,dWt: integrate_sde(G.sde_Brownian_inv,integrator_stratonovich,None,g,None,dWt)
+    G.Brownian_invf = G.function(G.Brownian_inv,dWt)
 

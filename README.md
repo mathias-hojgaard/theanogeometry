@@ -29,6 +29,10 @@ Start jupyter notebook as in
 ```
 export OMP_NUM_THREADS=1; THEANORC=.theanorc jupyter notebook
 ```
+alternatively, to suppress some warnings on e.g. Ubuntu,
+```
+export THEANO_FLAGS=blas.ldflags="-L/usr/lib/x86_64-linux-gnu -lopenblas"; export OMP_NUM_THREADS=1; THEANORC=.theanorc jupyter notebook
+```
 
 Some features, e.g. higher-order landmarks, may require a 'Bleeding-Edge Installation' installation of Theano, see http://deeplearning.net/software/theano/install.html installation instructions.
 

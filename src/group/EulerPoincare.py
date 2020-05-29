@@ -25,16 +25,16 @@ def initialize(G):
 
     assert(G.invariance == 'left')
 
-    g = G.element() # \RR^{NxN} matrix
-    q = G.Vvector() # element in psi coordinates
-    v = G.coordsvector() # \RR^G_dim tangent vector in coordinates
-    mu = G.Vcovector() # \RR^G_dim LA cotangent vector in coordinates
+    g = G.sym_element() # \RR^{NxN} matrix
+    q = G.sym_Vvector() # element in psi coordinates
+    v = G.sym_coordsvector() # \RR^G_dim tangent vector in coordinates
+    mu = G.sym_Vcovector() # \RR^G_dim LA cotangent vector in coordinates
 
     def ode_EP(t,mu):
         xi = G.invFl(mu)
         dmut = -G.coad(xi,mu)
         return dmut
-    G.EP = lambda mu: integrate(ode_EP,mu)
+    G.EP = lambda mu: integrate(ode_EP,None,mu,None)
     G.EPf = theano.function([mu], G.EP(mu))
 
     # reconstruction
@@ -42,9 +42,9 @@ def initialize(G):
         xi = G.invFl(mu)
         dgt = G.dL(g,G.e,G.VtoLA(xi))
         return dgt
-    G.EPrec = lambda g,mus: integrate(ode_EPrec,g,mus)
+    G.EPrec = lambda g,mus: integrate(ode_EPrec,None,g,None,mus)
     mus = T.matrix() # mu for each time step
-    G.EPrecf = theano.function([g,mus], G.EPrec(g,mus))
+    G.EPrecf = G.function(G.EPrec,mus)
 
     ### geodesics
     G.coExpEP = lambda g,mu: G.EPrec(g,G.EP(mu)[1])[1][-1]
@@ -57,12 +57,12 @@ def initialize(G):
         T.jacobian(G.coExpEP(g,mu).flatten(),g).reshape(G.N,G.N,G.N,G.N),
         T.jacobian(G.coExpEP(g,mu).flatten(),mu).reshape(G.N,G.N,G.dim)
         )
-    G.ExpEPf = theano.function([g,v], G.ExpEP(g,v))
+    G.ExpEPf = G.function(G.ExpEP,v)
     G.ExpEPpsif = theano.function([q,v], G.ExpEPpsi(q,v))
-    G.ExpEPtf = theano.function([g,v], G.ExpEPt(g,v))
+    G.ExpEPtf = G.function(G.ExpEPt,v)
     G.ExpEPpsitf = theano.function([q,v], G.ExpEPpsit(q,v))
-    G.coExpEPf = theano.function([g,mu], G.coExpEP(g,mu))
-    G.coExpEPtf = theano.function([g,mu], G.coExpEPt(g,mu))
+    G.coExpEPf = G.function(G.coExpEP,mu)
+    G.coExpEPtf = G.function(G.coExpEPt,mu)
     #loss = 1./G_emb_dim*T.sum(T.sqr(Exp(g,mu)-h))
     #dloss = (T.grad(loss,g),T.grad(loss,g))
     #lossf = theano.function([g,mu,h], loss)

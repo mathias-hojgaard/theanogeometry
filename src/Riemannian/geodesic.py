@@ -20,20 +20,48 @@
 from src.setup import *
 from src.utils import *
 
-def initialize(M):
-    x = M.element()
-    v = M.covector()
+def initialize(M,do_chart_update=None):
+    x = M.sym_element()
+    v = M.sym_covector()
 
-    def ode_geodesic(t,x):
+    def ode_geodesic(t,x,chart):
         dx2t = - T.tensordot(T.tensordot(x[1],
-                                         M.Gamma_g(x[0]), axes = [0,1]),
+                                         M.Gamma_g((x[0],chart)), axes = [0,1]),
                              x[1],axes = [1,0])
         dx1t = x[1]
         return T.stack((dx1t,dx2t))
 
-    geodesic = lambda x,v: integrate(ode_geodesic, T.stack((x,v)))
-    M.Exp = lambda x,v: geodesic(x,v)[1][-1,0]
-    M.Expf = theano.function([x,v], M.Exp(x,v))
-    M.Expt = lambda x,v: geodesic(x,v)[1][:,0]
-    M.Exptf = theano.function([x,v], M.Expt(x,v))
+    def chart_update_geodesic(t,xv,chart):
+        if do_chart_update is None:
+            return (t,xv,chart)
+
+        v = xv[1]
+        x = (xv[0],chart)
+
+        new_chart = M.centered_chart(M.F(x))
+        new_x = M.update_coords(x,new_chart)[0]
+        new_v = M.update_vector(x,new_x,new_chart,v)
+        
+        return theano.ifelse.ifelse(do_chart_update(x),
+                (t,xv,chart),
+                (t,T.stack((new_x,new_v)),new_chart)
+            )
+
+    M.geodesic = lambda x,v: integrate(ode_geodesic,chart_update_geodesic,T.stack((x[0],v)), x[1])
+    M.geodesicf = M.coords_function(M.geodesic,v)
+
+    def Exp(x,v):
+        curve = M.geodesic(x,v)
+        x = curve[1][-1,0]
+        chart = curve[2][-1]
+        return(x,chart)
+    M.Exp = Exp
+    M.Expf = M.coords_function(M.Exp,v)
+    def Expt(x,v):
+        curve = M.geodesic(x,v)
+        xs = curve[1][:,0]
+        charts = curve[2]
+        return(xs,charts)
+    M.Expt = Expt
+    M.Exptf = M.coords_function(M.Expt,v)
 

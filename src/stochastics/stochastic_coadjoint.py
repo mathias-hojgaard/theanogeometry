@@ -27,7 +27,7 @@ def initialize(G,Psi=None,r=None):
 
     assert(G.invariance == 'left')
 
-    mu = G.Vcovector() # \RR^G_dim LA cotangent vector in coordinates
+    mu = G.sym_Vcovector() # \RR^G_dim LA cotangent vector in coordinates
 
     # Matrix function Psi:LA\rightarrow R^r must be defined beforehand
     # example here from arXiv:1601.02249
@@ -47,7 +47,7 @@ def initialize(G,Psi=None,r=None):
         sto = T.tensordot(Sigma,dW,(1,0))
         return (det,sto,Sigma)
     G.sde_stochastic_coadjoint = sde_stochastic_coadjoint
-    G.stochastic_coadjoint = lambda mu,dWt: integrate_sde(G.sde_stochastic_coadjoint,integrator_stratonovich,mu,dWt)
+    G.stochastic_coadjoint = lambda mu,dWt: integrate_sde(G.sde_stochastic_coadjoint,integrator_stratonovich,None,mu,None,dWt)
     G.stochastic_coadjointf = theano.function([mu,dWt], G.stochastic_coadjoint(mu,dWt))
 
     # reconstruction as in Euler-Poincare / Lie-Poisson reconstruction

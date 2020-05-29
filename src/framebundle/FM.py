@@ -33,25 +33,25 @@ def initialize(M):
     v = M.vector()
     nu = M.frame()
 
-    def FM_element():
+    def sym_FM_element():
         """ return element of FM as concatenation (x,nu) flattened """
         return T.vector()
-    def FM_vector():
+    def sym_FM_vector():
         """ vector in TFM """
         return T.vector()
-    def FM_covector():
+    def Fsym_M_covector():
         """ covector in T^*FM """
         return T.vector()
-    M.FM_element = FM_element
-    M.FM_vector = FM_vector
-    M.FM_covector = FM_covector
+    M.sym_FM_element = sym_FM_element
+    M.sym_FM_vector = sym_FM_vector
+    M.sym_FM_covector = sym_FM_covector
 
-    u = M.FM_element()
-    q = M.FM_element()
-    p = M.FM_covector()
+    u = M.sym_FM_element()
+    q = M.sym_FM_element()
+    p = M.sym_FM_covector()
 
     ##### Cometric matrix:
-    def g_FMsharp(u):
+    def g_FMsharp(u,chart):
         x = u[0:d]
         nu = u[d:].reshape((d,d))#.reshape((d,M.m))
         GamX = T.tensordot(M.Gamma_g(x), nu, axes = [2,0]).dimshuffle(0,2,1)
@@ -145,4 +145,5 @@ def initialize(M):
         return T.concatenate([dx,dnuv.T], axis = 0)
     M.Horizontal = Horizontal
     M.Horizontalf = theano.function([u],M.Horizontal(u))
-
+    
+initialize(M)

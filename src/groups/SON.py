@@ -37,8 +37,8 @@ class SON(LieGroup):
         def to_group(g):
             (q,r) = T.nlinalg.qr(g)
             return T.dot(q,T.nlinalg.AllocDiag()(T.nlinalg.ExtractDiag()(r)))
-        g = self.element()
-        self.to_groupf = theano.function([g],to_group(g))
+        g = self.sym_element()
+        self.to_groupf = self.function(to_group)
 
         ## coordinate chart linking Lie algebra LA={A\in\RR^{NxN}|\trace{A}=0} and V=\RR^G_dim
         # derived from https://stackoverflow.com/questions/25326462/initializing-a-symmetric-theano-dmatrix-from-its-upper-triangle

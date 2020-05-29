@@ -23,19 +23,19 @@ from src.utils import *
 def initialize(G):
     """ group Lagrangian and Hamiltonian from invariant metric """
 
-    g = G.element() # \RR^{NxN} matrix
-    hatxi = G.Vvector() # \RR^G_dim vector
-    q = G.Vvector() # element in psi coordinates
-    v = G.coordsvector() # \RR^G_dim tangent vector in coordinates
-    vg = G.vector() # \RR^{NxN} tangent vector at g
-    p = G.coordscovector() # \RR^G_dim cotangent vector in coordinates
-    mu = G.Vcovector() # \RR^G_dim LA cotangent vector in coordinates
+    g = G.sym_element() # \RR^{NxN} matrix
+    hatxi = G.sym_Vvector() # \RR^G_dim vector
+    q = G.sym_Vvector() # element in psi coordinates
+    v = G.sym_coordsvector() # \RR^G_dim tangent vector in coordinates
+    vg = G.sym_vector() # \RR^{NxN} tangent vector at g
+    p = G.sym_coordscovector() # \RR^G_dim cotangent vector in coordinates
+    mu = G.sym_Vcovector() # \RR^G_dim LA cotangent vector in coordinates
 
     # Lagrangian
     def Lagrangian(g,vg):
         return .5*G.gG(g,vg,vg)
     G.Lagrangian = Lagrangian
-    G.Lagrangianf = theano.function([g,vg],G.Lagrangian(g,vg))
+    G.Lagrangianf = G.function(G.Lagrangian,vg)
     # Lagrangian using psi map
     def Lagrangianpsi(q,v):
         return .5*G.gpsi(q,v,v)
