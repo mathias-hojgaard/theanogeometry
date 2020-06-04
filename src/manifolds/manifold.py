@@ -20,6 +20,8 @@
 from src.setup import *
 from src.params import *
 
+import matplotlib.pyplot as plt
+
 class Manifold(object):
     """ Base manifold class """
 
@@ -214,6 +216,66 @@ class EmbeddedManifold(Manifold):
             #    
             #    return get_coords
             #self.get_coordsf = get_get_coords()
+            
+        # plot path
+    def plot_path(self, xs, u=None, v=None, N_vec=np.arange(0,n_steps.eval()), i0=0, color='b', color_intensity=1., linewidth=1., s=15., prevx=None, prevchart=None, last=True):
+        xs = list(xs)
+        N = len(xs)
+        prevx = None
+        for i,x in enumerate(xs):
+            self.plotx(x, u=u if i == 0 else None, v=v[i] if v is not None else None,
+                       N_vec=N_vec,i0=i,
+                       color=color,
+                       color_intensity=color_intensity if i==0 or i==N-1 else .7,
+                       linewidth=linewidth,
+                       s=s,
+                       prevx=prevx,
+                       last=i==(N-1))
+            prevx = x
+        return
+    
+    
+    # plot x. x can be either in coordinates or in R^3
+    def plotx(self, x, u=None, v=None, N_vec=np.arange(0,n_steps.eval()), i0=0, color='b', color_intensity=1., linewidth=1., s=15., prevx=None, prevchart=None, last=True):
+        
+        assert(type(x) == type(()) or x.shape[0] == self.emb_dim.eval())
+
+        if type(x) == type(()): # map to S2
+            Fx = self.Ff(x)
+            chart = x[1]
+        else: # get coordinates
+            Fx = x
+            chart = self.centered_chartf(Fx)
+            x = (self.invFf((Fx,chart)),chart)
+          
+        if prevx is not None:
+            if type(prevx) == type(()): # map to S2
+                Fprevx = self.Ff(prevx)
+            else:
+                Fprevx = prevx
+                prevx = (self.invFf((Fprevx,chart)),chart)
+    
+        ax = plt.gca(projection='3d')
+        if prevx is None or last:
+            ax.scatter(Fx[0],Fx[1],Fx[2],color=color,s=s)
+        if prevx is not None:
+            xx = np.stack((Fprevx,Fx))
+            ax.plot(xx[:,0],xx[:,1],xx[:,2],linewidth=linewidth,color=color)
+    
+        if u is not None:
+            Fu = np.dot(self.JFf(x), u)
+            ax.quiver(Fx[0], Fx[1], Fx[2], Fu[0], Fu[1], Fu[2],
+                      pivot='tail',
+                      arrow_length_ratio = 0.15, linewidths=linewidth, length=0.5,
+                      color='black')
+    
+        if v is not None:
+            if i0 in N_vec:
+                v = np.dot(self.JFf(x), v)
+                ax.quiver(Fx[0], Fx[1], Fx[2], v[0], v[1], v[2],
+                          pivot='tail',
+                          arrow_length_ratio = 0.15, linewidths=linewidth, length=0.5,
+                        color='black')
 
     def __str__(self):
         return "dim %d manifold embedded in R^%d" % (self.dim.eval(),self.emb_dim.eval())

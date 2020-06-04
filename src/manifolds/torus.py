@@ -28,8 +28,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.ticker as ticker
 
-class Cylinder(EmbeddedManifold):
-    """ 2d Cylinder """
+class Torus(EmbeddedManifold):
+    """ 2d torus, embedded metric """
 
     def _chart(self):
         """ return default coordinate chart """
@@ -54,21 +54,33 @@ class Cylinder(EmbeddedManifold):
         y = self.invF((y,chart))
         return self.update_vector((x,chart),_x[0],_x[1],y-x)
     
-    def __init__(self,params=(1.,np.array([0.,1.,0.]),0.)):
-        self.radius = theano.shared(tensor(params[0])) # axis of cylinder
-        self.orientation = theano.shared(tensor(params[1])) # axis of cylinder
-        self.theta = theano.shared(tensor(params[2])) # angle around rotation axis
+    def __init__(self,params=(1.,2.,np.array([0.,1.,0.]))):
+        self.radius = theano.shared(tensor(params[0])) # axis of small circle
+        self.Radius = theano.shared(tensor(params[1])) # axis of large circle
+        self.orientation = theano.shared(tensor(params[2])) # axis of cylinder
 
         F = lambda x: T.dot(self.get_B(self.orientation),
-                T.stack([x[0][1]+x[1][1],self.radius*T.cos(self.theta+x[1][0]+x[0][0]),self.radius*T.sin(self.theta+x[1][0]+x[0][0])]))
+                T.stack([self.radius*T.sin(x[0][1]+x[1][1]),
+                        (self.Radius+self.radius*T.cos(x[0][1]+x[0][1]))*T.cos(x[0][0]+x[0][0]),
+                        (self.Radius+self.radius*T.cos(x[0][1]+x[0][1]))*T.sin(x[0][0]+x[0][0])]))
         def invF(x):
             Rinvx = T.slinalg.Solve()(self.get_B(self.orientation),x[0])
-            rotangle = -(self.theta+x[1][0])
-            rot = T.dot(T.stack(
-                (T.stack((T.cos(rotangle),-T.sin(rotangle))),
-                 T.stack((T.sin(rotangle),T.cos(rotangle))))),
+            rotangle0 = -x[1][0]
+            rot0 = T.dot(T.stack(
+                (T.stack((T.cos(rotangle0),-T.sin(rotangle0))),
+                 T.stack((T.sin(rotangle0),T.cos(rotangle0))))),
                 Rinvx[1:])
-            return T.stack([T.arctan2(rot[1],rot[0]),Rinvx[0]-x[1][1]])
+            phi = T.arctan2(rot0[1],rot0[0])
+            rotangle1 = -x[1][1]
+            rcosphi = theano.ifelse.ifelse(T.ge(T.cos(phi),1e-4),
+                                      Rinvx[1]/T.cos(phi)-self.Radius,
+                                      Rinvx[2]/T.sin(phi)-self.Radius)
+            rot1 = T.dot(T.stack(
+                (T.stack((T.cos(rotangle1),-T.sin(rotangle1))),
+                 T.stack((T.sin(rotangle1),T.cos(rotangle1))))),
+                T.stack((rcosphi,Rinvx[0])))
+            theta = phi = T.arctan2(rot1[1],rot1[0])
+            return T.stack([phi,theta])
         self.do_chart_update = lambda x: T.le(T.abs_(x[0][0]),np.pi/2) # look for a new chart if false
 
         EmbeddedManifold.__init__(self,F,2,3,invF=invF)
@@ -80,12 +92,13 @@ class Cylinder(EmbeddedManifold):
         # metric matrix
         x = self.sym_coords()
         self.g = lambda x: T.dot(self.JF(x).T,self.JF(x))
-                
+        
         # Logarithm with standard Riemannian metric
         self.StdLogf = self.coords_function(self.StdLog,self.sym_element())
 
+
     def __str__(self):
-        return "cylinder in R^3, radius %s, axis %s, rotation around axis %s" % (self.radius.eval(),self.orientation.eval(),self.theta.eval())
+        return "torus in R^3, radius %s, Radius %s, axis %s" % (self.radius.eval(),self.Radius.eval(),self.orientation.eval())
 
     def newfig(self):
         newfig3d()
@@ -127,7 +140,6 @@ class Cylinder(EmbeddedManifold):
 
         if alpha is not None:
             ax.plot_surface(x, y, z, color=cm.jet(0.), alpha=alpha)
-
 
     def plot_field(self, field,lw=.3):
         ax = plt.gca(projection='3d')
