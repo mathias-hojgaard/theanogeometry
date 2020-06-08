@@ -69,7 +69,7 @@ class Cylinder(EmbeddedManifold):
                  T.stack((T.sin(rotangle),T.cos(rotangle))))),
                 Rinvx[1:])
             return T.stack([T.arctan2(rot[1],rot[0]),Rinvx[0]-x[1][1]])
-        self.do_chart_update = lambda x: T.le(T.abs_(x[0][0]),np.pi/2) # look for a new chart if false
+        self.do_chart_update = lambda x: T.lt(T.abs_(x[0][0]),np.pi/2) # look for a new chart if false
 
         EmbeddedManifold.__init__(self,F,2,3,invF=invF)
         self.chart = self._chart

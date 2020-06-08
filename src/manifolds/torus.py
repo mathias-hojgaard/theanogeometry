@@ -61,8 +61,8 @@ class Torus(EmbeddedManifold):
 
         F = lambda x: T.dot(self.get_B(self.orientation),
                 T.stack([self.radius*T.sin(x[0][1]+x[1][1]),
-                        (self.Radius+self.radius*T.cos(x[0][1]+x[0][1]))*T.cos(x[0][0]+x[0][0]),
-                        (self.Radius+self.radius*T.cos(x[0][1]+x[0][1]))*T.sin(x[0][0]+x[0][0])]))
+                        (self.Radius+self.radius*T.cos(x[0][1]+x[1][1]))*T.cos(x[0][0]+x[1][0]),
+                        (self.Radius+self.radius*T.cos(x[0][1]+x[1][1]))*T.sin(x[0][0]+x[1][0])]))
         def invF(x):
             Rinvx = T.slinalg.Solve()(self.get_B(self.orientation),x[0])
             rotangle0 = -x[1][0]
@@ -72,16 +72,19 @@ class Torus(EmbeddedManifold):
                 Rinvx[1:])
             phi = T.arctan2(rot0[1],rot0[0])
             rotangle1 = -x[1][1]
+            epsilons = theano.ifelse.ifelse(T.ge(T.cos(phi),1e-4),
+                                      T.stack((0.,1e-4)),
+                                      T.stack((1e-4),0.)) # to avoid divide by zero in gradient computations
             rcosphi = theano.ifelse.ifelse(T.ge(T.cos(phi),1e-4),
-                                      Rinvx[1]/T.cos(phi)-self.Radius,
-                                      Rinvx[2]/T.sin(phi)-self.Radius)
+                                      rot0[0]/(T.cos(phi)+epsilons[0])-self.Radius,
+                                      rot0[1]/(T.sin(phi)+epsilons[1])-self.Radius)
             rot1 = T.dot(T.stack(
                 (T.stack((T.cos(rotangle1),-T.sin(rotangle1))),
                  T.stack((T.sin(rotangle1),T.cos(rotangle1))))),
                 T.stack((rcosphi,Rinvx[0])))
-            theta = phi = T.arctan2(rot1[1],rot1[0])
+            theta = T.arctan2(rot1[1],rot1[0])
             return T.stack([phi,theta])
-        self.do_chart_update = lambda x: T.le(T.abs_(x[0][0]),np.pi/2) # look for a new chart if false
+        self.do_chart_update = lambda x: T.lt(T.max(T.abs_(x[0])),np.pi/2) # look for a new chart if false
 
         EmbeddedManifold.__init__(self,F,2,3,invF=invF)
         self.chart = self._chart
