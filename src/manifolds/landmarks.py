@@ -35,6 +35,12 @@ class landmarks(Manifold):
         self.dim = self.m*self.N
         self.rank = theano.shared(self.dim.eval())
 
+        self.chartf = theano.function([],self.chart())
+        self.update_coords = lambda coords,_: coords
+        new_chart = self.sym_chart()
+        self._update_coordsf = self.coords_function(self.update_coords,new_chart)
+        self.update_coordsf = lambda coords,new_chart: tuple(self._update_coordsf(coords,new_chart))
+
         self.k_alpha = theano.shared(scalar(k_alpha))
         self.k_sigma = theano.shared(tensor(k_sigma)) # standard deviation of the kernel
         self.inv_k_sigma = theano.tensor.nlinalg.MatrixInverse()(self.k_sigma)
@@ -42,21 +48,21 @@ class landmarks(Manifold):
         self.kernel = kernel
 
         ##### Kernel on M:
-        if self.kernel is 'Gaussian':
+        if self.kernel == 'Gaussian':
             k = lambda x: self.k_alpha*T.exp(-.5*T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2))
-        elif self.kernel is 'K1':
+        elif self.kernel == 'K1':
             def k(x):
                 r = T.sqrt((1e-7+T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2)))
                 return self.k_alpha*2*(1+r)*T.exp(-r)
-        elif self.kernel is 'K2':
+        elif self.kernel == 'K2':
             def k(x):
                 r = T.sqrt((1e-7+T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2)))
                 return self.k_alpha*4*(3+3*r+r**2)*T.exp(-r)
-        elif self.kernel is 'K3':
+        elif self.kernel == 'K3':
             def k(x):
                 r = T.sqrt((1e-7+T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2)))
                 return self.k_alpha*8*(15+15*r+6*r**2+r**3)*T.exp(-r)
-        elif self.kernel is 'K4':
+        elif self.kernel == 'K4':
             def k(x):
                 r = T.sqrt((1e-7+T.sqr(T.tensordot(x,self.inv_k_sigma,(0 if x.type == T.vector().type else 2,1))).sum(0 if x.type == T.vector().type else 2)))
                 return self.k_alpha*16*(105+105*r+45*r**2+10*r**3+r**4)*T.exp(-r)
@@ -69,8 +75,8 @@ class landmarks(Manifold):
         self.d2k = d2k
 
         # in coordinates
-        q1 = self.element()
-        q2 = self.element()
+        q1 = self.sym_element()
+        q2 = self.sym_element()
         self.k_q = lambda q1,q2: self.k(q1.reshape((-1,m)).dimshuffle(0,'x',1)-q2.reshape((-1,m)).dimshuffle('x',0,1))
         self.k_qf = theano.function([q1,q2],self.k_q(q1,q2))
         self.K = lambda q1,q2: (self.k_q(q1,q2)[:,:,np.newaxis,np.newaxis]*T.eye(self.m)[np.newaxis,np.newaxis,:,:]).dimshuffle((0,2,1,3)).reshape((-1,self.dim))
@@ -78,7 +84,7 @@ class landmarks(Manifold):
 
         ##### Metric:
         def gsharp(q):
-            return self.K(q,q)
+            return self.K(q[0],q[0])
         self.gsharp = gsharp
 
 
@@ -93,64 +99,80 @@ class landmarks(Manifold):
     def plot(self):
         plt.axis('equal')
 
+    def plot_path(self, xs, u=None, color='b', color_intensity=1., linewidth=1., prevx=None, last=True, curve=False, markersize=None, arrowcolor='k'):
+        xs = list(xs)
+        N = len(xs)
+        prevx = None
+        for i,x in enumerate(xs):
+            self.plotx(x, u=u if i == 0 else None,
+                       color=color,
+                       color_intensity=color_intensity if i==0 or i==N-1 else .7,
+                       linewidth=linewidth,
+                       prevx=prevx,
+                       last=i==N-1,
+                       curve=curve)
+            prevx = x
+        return
+
     def plotx(self, x, u=None, color='b', color_intensity=1., linewidth=1., prevx=None, last=True, curve=False, markersize=None, arrowcolor='k'):
-        if len(x.shape)>1:
-            for i in range(x.shape[0]):
-                self.plotx(x[i], u=u if i == 0 else None,
-                           color=color,
-                           color_intensity=color_intensity if i==0 or i==x.shape[0]-1 else .7,
-                           prevx=x[i-1] if i>0 else None,
-                           last=i==(x.shape[0]-1),
-                           curve=curve)
-            return
+        assert(type(x) == type(()) or x.shape[0] == self.dim.eval())
+        if type(x) == type(()):
+            x = x[0]
+        if type(prevx) == type(()):
+            prevx = prevx[0]
 
         x = x.reshape((-1,self.m.eval()))
         NN = x.shape[0]
 
         for j in range(NN):
-            if prevx is None or last:
+            if last:
                 plt.scatter(x[j,0],x[j,1],color=color,s=markersize)
-            if prevx is not None:
-                prevx = prevx.reshape((NN,self.m.eval()))
-                xx = np.stack((prevx[j,:],x[j,:]))
-                plt.plot(xx[:,0],xx[:,1],linewidth=linewidth,color=color)
+            else:
+                try:
+                    prevx = prevx.reshape((NN,self.m.eval()))
+                    xx = np.stack((prevx[j,:],x[j,:]))
+                    plt.plot(xx[:,0],xx[:,1],linewidth=linewidth,color=color)
+                except:
+                    plt.scatter(x[j,0],x[j,1],color=color,s=markersize)
 
-            if u is not None:
+            try:
                 u = u.reshape((NN, self.m.eval()))
                 plt.quiver(x[j,0], x[j,1], u[j, 0], u[j, 1], pivot='tail', linewidth=linewidth, scale=5, color=arrowcolor)
-        if curve and (last or prevx is None):
+            except:
+                pass
+        if curve and (last or prevx == None):
             plt.plot(np.hstack((x[:,0],x[0,0])),np.hstack((x[:,1],x[0,1])),'o-',color=color)
 
-    # plot point in frame bundle FM
-    def plotFMx(self,u,N_vec=0,i0=0,color=np.array(['g','b']),s=10,color_intensity=1.,linewidth=3.,prevx=None,last=True):
-        if len(u.shape)>1:
-            for i in range(u.shape[0]):
-                self.plotFMx(u[i],
-                        N_vec=N_vec,i0=i,               
-                        color=color, s=s,        
-                        linewidth=linewidth if i==0 or i==u.shape[0]-1 else .8,
-                        color_intensity=color_intensity if i==0 or i==u.shape[0]-1 else .7,
-                        prevx=u[i-1] if i>0 else None,
-                        last=i==(u.shape[0]-1))                  
-            return
-    
-        x = u[0:self.dim.eval()].reshape((self.N.eval(),self.m.eval()))
-        nu = u[self.dim.eval():].reshape((self.N.eval(),self.m.eval(),-1))
-     
-        for j in range(self.N.eval()):
-            if prevx is None or last:
-                plt.scatter(x[j,0],x[j,1],color=color[0])
-            if prevx is not None:
-                prevxx = prevx[0:self.dim.eval()].reshape((self.N.eval(),2))
-                xx = np.stack((prevxx[j,:],x[j,:]))
-                plt.plot(xx[:,0],xx[:,1],linewidth=linewidth,color=color[1])
-    
-            if N_vec is not None:                                              
-               Seq = lambda m, n: [t*n//m + n//(2*m) for t in range(m)]
-               Seqv = np.hstack((0,Seq(N_vec,n_steps.eval())))
-               if i0 == 0 or i0 in Seqv:
-                   for k in range(nu.shape[2]):
-                       plt.quiver(x[j,0],x[j,1],nu[j,0,k],nu[j,1,k],pivot='tail',linewidth=linewidth,scale=s)
+#    # plot point in frame bundle FM
+#    def plotFMx(self,u,N_vec=0,i0=0,color=np.array(['g','b']),s=10,color_intensity=1.,linewidth=3.,prevx=None,last=True):
+#        if len(u.shape)>1:
+#            for i in range(u.shape[0]):
+#                self.plotFMx(u[i],
+#                        N_vec=N_vec,i0=i,               
+#                        color=color, s=s,        
+#                        linewidth=linewidth if i==0 or i==u.shape[0]-1 else .8,
+#                        color_intensity=color_intensity if i==0 or i==u.shape[0]-1 else .7,
+#                        prevx=u[i-1] if i>0 else None,
+#                        last=i==(u.shape[0]-1))                  
+#            return
+#    
+#        x = u[0:self.dim.eval()].reshape((self.N.eval(),self.m.eval()))
+#        nu = u[self.dim.eval():].reshape((self.N.eval(),self.m.eval(),-1))
+#     
+#        for j in range(self.N.eval()):
+#            if prevx == None or last:
+#                plt.scatter(x[j,0],x[j,1],color=color[0])
+#            if prevx != None:
+#                prevxx = prevx[0:self.dim.eval()].reshape((self.N.eval(),2))
+#                xx = np.stack((prevxx[j,:],x[j,:]))
+#                plt.plot(xx[:,0],xx[:,1],linewidth=linewidth,color=color[1])
+#    
+#            if N_vec != None:                                              
+#               Seq = lambda m, n: [t*n//m + n//(2*m) for t in range(m)]
+#               Seqv = np.hstack((0,Seq(N_vec,n_steps.eval())))
+#               if i0 == 0 or i0 in Seqv:
+#                   for k in range(nu.shape[2]):
+#                       plt.quiver(x[j,0],x[j,1],nu[j,0,k],nu[j,1,k],pivot='tail',linewidth=linewidth,scale=s)
 
 
     # grid plotting functions

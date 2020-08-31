@@ -23,28 +23,47 @@ from src.utils import *
 ###############################################################
 # Langevin equations https://arxiv.org/abs/1605.09276
 ###############################################################
-def initialize(M):
-    q = M.coords()
-    p = M.coordscovector()
+def initialize(M,do_chart_update=None):
+    q = M.sym_coords()
+    p = M.sym_coordscovector()
     
     l = T.scalar()
     s = T.scalar()
 
-    dW = M.element()
+    dW = M.sym_element()
 
     dq = lambda q,p: T.grad(M.H(q,p),p)
-    dp = lambda q,p: -T.grad(M.H(q,p),q)
+    dp = lambda q,p: -T.grad(M.H(q,p),q[0])
 
-    def sde_Langevin(dW,t,x,l,s):
-        dqt = dq(x[0],x[1])
-        dpt = dp(x[0],x[1])-l*dq(x[0],x[1])
+    def sde_Langevin(dW,t,x,chart,l,s):
+        dqt = dq((x[0],chart),x[1])
+        dpt = dp((x[0],chart),x[1])-l*dq((x[0],chart),x[1])
 
         X = T.stack((T.zeros((M.dim,M.dim)),s*T.eye(M.dim)))
         det = T.stack((dqt,dpt))
         sto = T.tensordot(X,dW,(1,0))
-        return (det,sto,X,l,s)
-    M.Langevin_qp = lambda q,p,l,s,dWt: integrate_sde(sde_Langevin,integrator_ito,T.stack((q,p)),dWt,l,s)
-    M.Langevin_qpf = theano.function([q,p,l,s,dWt], M.Langevin_qp(q,p,l,s,dWt))
+        return (det,sto,X,T.zeros_like(l),T.zeros_like(s))
 
-    M.Langevin = lambda q,p,l,s,dWt: M.Langevin_qp(q,p,l,s,dWt)[0:2]
-    M.Langevinf = theano.function([q,p,l,s,dWt], M.Langevin(q,p,l,s,dWt))
+    def chart_update_Langevin(t,xp,chart,l,s):
+        if do_chart_update is None:
+            return (t,xp,chart,l,s)
+
+        p = xp[1]
+        x = (xp[0],chart)
+
+        new_chart = M.centered_chart(M.F(x))
+        new_x = M.update_coords(x,new_chart)[0]
+        new_p = M.update_covector(x,new_x,new_chart,p)
+        
+        return theano.ifelse.ifelse(do_chart_update(x),
+                (t,xp,chart,l,s),
+                (t,T.stack((new_x,new_p)),new_chart,l,s)
+            )
+
+    M.sde_Langevin = sde_Langevin
+    M.chart_update_Langevin = chart_update_Langevin
+    M.Langevin_qp = lambda q,p,l,s,dWt: integrate_sde(sde_Langevin,integrator_ito,chart_update_Langevin,T.stack((q[0],p)),q[1],dWt,l,s)
+    M.Langevin_qpf = M.coords_function(M.Langevin_qp,p,l,s,dWt)
+
+    M.Langevin = lambda q,p,l,s,dWt: M.Langevin_qp(q,p,l,s,dWt)[0:3]
+    M.Langevinf = M.coords_function(M.Langevin,p,l,s,dWt)

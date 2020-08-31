@@ -187,7 +187,7 @@ def integrator_ito(sde_f,use_charts=False,chart_update=None):
             ys_new = ()
             for (y,dy) in zip(ys,dys):
                 ys_new = ys_new + (y+dt*dy,)
-            return (t+dt,x + dt*detx + stox)
+            return (t+dt,x + dt*detx + stox, *ys_new)
         else:
             (dW,t,x,chart,*ys) = y
             (detx, stox, X, *dys) = sde_f(dW,t,x,chart,*ys)

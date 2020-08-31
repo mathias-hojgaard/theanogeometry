@@ -23,28 +23,27 @@ from src.utils import *
 def initialize(M,f=None):
     """ numerical Riemannian Logarithm map """
 
-    x = M.element()
-    y = M.element()
-    v = M.vector()
+    y = M.sym_element()
+    v = M.sym_vector()
 
     if f is None:
         print("using M.Exp for Logarithm")
         f = M.Exp
-    loss = lambda x,v,y: 1./M.dim.eval()*T.sum(T.sqr(f(x,v)-y))
+    loss = lambda x,v,y: 1./M.dim.eval()*T.sum(T.sqr(f(x,v)[0]-y))
     dloss = lambda x,v,y: T.grad(loss(x,v,y),v)
-    dlossf = theano.function([x,v,y], (loss(x,v,y),dloss(x,v,y)))
+    dlossf = M.coords_function(lambda x,v,y: (loss(x,v,y),dloss(x,v,y)),v,y)
 
     from scipy.optimize import minimize,fmin_bfgs,fmin_cg
     def shoot(x,y,v0=None):        
+        y = M.update_coordsf(y,x[1])
         def f(w):
-            (z,dz) = dlossf(x,w.astype(theano.config.floatX),y)
-            return (z.astype(np.double),dz.astype(np.double))
+            (z,dz) = dlossf(x,w.astype(theano.config.floatX),y[0])
+            return (tensor(z),tensor(dz))
 
         if v0 is None:
             v0 = np.zeros(M.dim.eval())
-        res = minimize(f, v0.astype(np.double), method='L-BFGS-B', jac=True, options={'disp': False, 'maxiter': 500})
+        res = minimize(f, tensor(v0), method='L-BFGS-B', jac=True, options={'disp': False, 'maxiter': 500})
 
         return (tensor(res.x),res.fun)
 
     M.Logf = shoot
-    #M.Logf = lambda x,y,v0: shoot(x,y,v0)

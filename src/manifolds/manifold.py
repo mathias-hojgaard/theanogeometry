@@ -114,7 +114,7 @@ class Manifold(object):
 
         coords = self.sym_coords()
         chart = self.sym_chart()
-        _f = theano.function([coords,chart]+list(args),f((coords,chart),*args))
+        _f = theano.function([coords,chart]+list(args),f((coords,chart),*args),on_unused_input='ignore')
 
         def ff(x,*args):
             if type(x) == type(()):
@@ -132,7 +132,7 @@ class Manifold(object):
         """ compile function on manifold. Result function takes element on manifold + optinal parameters """
 
         x = self.sym_element()
-        ff = theano.function([x,]+list(args),f(x,*args))
+        ff = theano.function([x,]+list(args),f(x,*args),on_unused_input='ignore')
              
         return ff
 
