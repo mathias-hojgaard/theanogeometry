@@ -140,7 +140,7 @@ class landmarks(Manifold):
                 plt.quiver(x[j,0], x[j,1], u[j, 0], u[j, 1], pivot='tail', linewidth=linewidth, scale=5, color=arrowcolor)
             except:
                 pass
-        if curve and (last or prevx == None):
+        if curve and (last or prevx is None):
             plt.plot(np.hstack((x[:,0],x[0,0])),np.hstack((x[:,1],x[0,1])),'o-',color=color)
 
 #    # plot point in frame bundle FM
