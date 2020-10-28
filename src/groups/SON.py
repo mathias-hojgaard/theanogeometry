@@ -96,16 +96,17 @@ class SON(LieGroup):
 
     ### plotting
     import matplotlib.pyplot as plt
-    def plotg(self,g,color_intensity=1.,color=None,linewidth=3.,alpha=1.,prevg=None):
-        if len(g.shape)>2:
-            for i in range(g.shape[0]):
-                self.plotg(g[i],
-                      linewidth=linewidth if i==0 or i==g.shape[0]-1 else .3,
-                      color_intensity=color_intensity if i==0 or i==g.shape[0]-1 else .7,
-                      alpha=alpha,
-                      prevg=g[i-1] if i>0 else None)
-            return 
+    def plot_path(self,g,color_intensity=1.,color=None,linewidth=3.,alpha=1.,prevg=None):
+        assert(len(g.shape)>2)
+        for i in range(g.shape[0]):
+            self.plotg(g[i],
+                  linewidth=linewidth if i==0 or i==g.shape[0]-1 else .3,
+                  color_intensity=color_intensity if i==0 or i==g.shape[0]-1 else .7,
+                  alpha=alpha,
+                  prevg=g[i-1] if i>0 else None)
+        return 
 
+    def plotg(self,g,color_intensity=1.,color=None,linewidth=3.,alpha=1.,prevg=None):
         # Grid Settings:
         import matplotlib.ticker as ticker 
         ax = plt.gca(projection='3d')

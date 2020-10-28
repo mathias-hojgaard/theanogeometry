@@ -23,8 +23,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.ticker as ticker
 
-mpl_figsize = 12,12
-mpl.rcParams['figure.figsize'] = mpl_figsize
+mpl.rcParams['figure.figsize'] = 12,12
 
 from src.setup import * 
 from src.utils import * 
@@ -34,7 +33,6 @@ from src.utils import *
 ############################
 
 def newfig2d(nrows=1,ncols=1,plot_number=1,new_figure=True):
-    mpl.rcParams['figure.figsize'] = mpl_figsize
     if new_figure:
         fig = plt.figure()
     else:
@@ -42,7 +40,6 @@ def newfig2d(nrows=1,ncols=1,plot_number=1,new_figure=True):
     plt.axis("equal")
     return (fig)
 def newfig3d(nrows=1,ncols=1,plot_number=1,new_figure=True):
-    mpl.rcParams['figure.figsize'] = mpl_figsize
     if new_figure:
         fig = plt.figure()
     else:
@@ -96,7 +93,7 @@ def plot_density_estimate(M, obss, alpha=.2, limits=None, border=1.5, bandwidth=
 # plot general function on S2
 def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=None, colorbar=True):
         # grids
-        phi, theta = np.meshgrid(np.linspace(0.,2.*np.pi,pts),np.linspace(0.,np.pi,pts))
+        phi, theta = np.meshgrid(np.linspace(0.,2.*np.pi,pts),np.linspace(np.pi/2,-np.pi/2,pts))
         phitheta = np.vstack([phi.ravel(), theta.ravel()]).T
         xs = np.apply_along_axis(M.F_sphericalf,1,phitheta)
         X = xs[:,0].reshape(phi.shape)
@@ -140,7 +137,7 @@ def plot_sphere_density_estimate(M, obss_M, alpha=.2, bandwidth=0.08, pts=100, c
         kde.fit(obss_q)
                             
         # grids
-        phi, theta = np.meshgrid(np.linspace(0.,2.*np.pi,pts),np.linspace(0.,np.pi,pts))
+        phi, theta = np.meshgrid(np.linspace(0.,2.*np.pi,pts),np.linspace(-np.pi/2,np.pi/2,pts))
         phitheta = np.vstack([phi.ravel(), theta.ravel()]).T
         xs = np.apply_along_axis(M.F_sphericalf,1,phitheta)
         X = xs[:,0].reshape(phi.shape)
@@ -159,7 +156,7 @@ def plot_sphere_density_estimate(M, obss_M, alpha=.2, bandwidth=0.08, pts=100, c
 
 
 def plot_Euclidean_density_estimate(obss, alpha=.2, view='2D', limits=None, border=1.5, bandwidth=0.08, pts=100, cmap = cm.jet, colorbar=True):
-        if view is '2D':
+        if view == '2D':
             if range is None:
                 hist,histy,histx= np.histogram2d(obss[:,0],obss[:,1],bins=25)
             else:

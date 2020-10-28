@@ -35,7 +35,7 @@ class SPDN(EmbeddedManifold):
         self.dim = constant(N*N)
         self.emb_dim = self.dim
 
-        x = self.element()
+        x = self.sym_element()
         g = T.matrix() # \RR^{NxN} matrix
         gs = T.tensor3() # sequence of \RR^{NxN} matrices
         def act(g,q):
@@ -58,7 +58,7 @@ class SPDN(EmbeddedManifold):
 
     def plot(self, rotate=None, alpha = None):
         ax = plt.gca(projection='3d')
-        ax.set_aspect("equal")
+        #ax.set_aspect("equal")
         if rotate != None:
             ax.view_init(rotate[0],rotate[1])
     #     else:
@@ -66,14 +66,17 @@ class SPDN(EmbeddedManifold):
         plt.xlabel('x')
         plt.ylabel('y')
 
+
+    def plot_path(self, x,color_intensity=1.,color=None,linewidth=3.,prevx=None,ellipsoid=None,i=None,maxi=None):
+        assert(len(x.shape)>2)
+        for i in range(x.shape[0]):
+            self.plotx(x[i],
+                  linewidth=linewidth if i==0 or i==x.shape[0]-1 else .3,
+                  color_intensity=color_intensity if i==0 or i==x.shape[0]-1 else .7,
+                  prevx=x[i-1] if i>0 else None,ellipsoid=ellipsoid,i=i,maxi=x.shape[0])
+        return
+
     def plotx(self, x,color_intensity=1.,color=None,linewidth=3.,prevx=None,ellipsoid=None,i=None,maxi=None):
-        if len(x.shape)>2:
-            for i in range(x.shape[0]):
-                self.plotx(x[i],
-                      linewidth=linewidth if i==0 or i==x.shape[0]-1 else .3,
-                      color_intensity=color_intensity if i==0 or i==x.shape[0]-1 else .7,
-                      prevx=x[i-1] if i>0 else None,ellipsoid=ellipsoid,i=i,maxi=x.shape[0])
-            return
         (w,V) = np.linalg.eigh(x)
         s = np.sqrt(w[np.newaxis,:])*V # scaled eigenvectors
         if prevx is not None:
@@ -95,9 +98,9 @@ class SPDN(EmbeddedManifold):
                 pass
             try:
                 if ellipsoid['subplot']:
-                    (fig,ax) = newfig(1,maxi//int(ellipsoid['step'])+1,i//int(ellipsoid['step'])+1,new_figure=i==0)
+                    (fig,ax) = newfig3d(1,maxi//int(ellipsoid['step'])+1,i//int(ellipsoid['step'])+1,new_figure=i==0)
             except:
-                ax = plot.gca(projection='3d')
+                (fig,ax) = newfig3d()
             #draw ellipsoid, from https://stackoverflow.com/questions/7819498/plotting-ellipsoid-with-matplotlib
             U, ss, rotation = np.linalg.svd(x)
             radii = np.sqrt(ss)

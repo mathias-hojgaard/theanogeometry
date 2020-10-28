@@ -79,17 +79,17 @@ class Ellipsoid(EmbeddedManifold):
                 Rinvx = T.slinalg.Solve()(self.get_B(x[1]),x[0])
                 return T.stack([Rinvx[1]/(1+Rinvx[0]),Rinvx[2]/(1+Rinvx[0])])
             self.do_chart_update = lambda x: T.le(T.sum(T.square(x[0])),1) # look for a new chart if false
-        ## spherical coordinates
-        #x = self.sym_coords() # Point on M in coordinates
-        #self.F_spherical = lambda phitheta: params*T.stack([T.sin(phitheta[1]-np.pi/2)*T.cos(phitheta[0]),T.sin(phitheta[1]-np.pi/2)*T.sin(phitheta[0]),T.cos(phitheta[1]-np.pi/2)])
-        #self.F_sphericalf = theano.function([x], self.F_spherical(x))
-        #self.JF_spherical = lambda x: T.jacobian(self.F_spherical(x),x)
-        #self.JF_sphericalf = theano.function([x], self.JF_spherical(x))
-        #self.F_spherical_inv = lambda x: T.stack([T.arctan2(x[1],x[0]),T.arccos(x[2])])
-        #self.F_spherical_invf = theano.function([x], self.F_spherical_inv(x))
-        #self.g_spherical = lambda x: T.dot(self.JF_spherical(x).T,self.JF_spherical(x))
-        #self.mu_Q_spherical = lambda x: 1./T.nlinalg.Det()(self.g_spherical(x))
-        #self.mu_Q_sphericalf = theano.function([x],self.mu_Q_spherical(x))
+        # spherical coordinates, no charts
+        x = self.sym_coords() # Point on M in coordinates
+        self.F_spherical = lambda phitheta: params*T.stack([T.sin(phitheta[1]-np.pi/2)*T.cos(phitheta[0]),T.sin(phitheta[1]-np.pi/2)*T.sin(phitheta[0]),T.cos(phitheta[1]-np.pi/2)])
+        self.F_sphericalf = theano.function([x], self.F_spherical(x))
+        self.JF_spherical = lambda x: T.jacobian(self.F_spherical(x),x)
+        self.JF_sphericalf = theano.function([x], self.JF_spherical(x))
+        self.F_spherical_inv = lambda x: T.stack([T.arctan2(x[1],x[0]),T.arccos(x[2])])
+        self.F_spherical_invf = theano.function([x], self.F_spherical_inv(x))
+        self.g_spherical = lambda x: T.dot(self.JF_spherical(x).T,self.JF_spherical(x))
+        self.mu_Q_spherical = lambda x: 1./T.nlinalg.Det()(self.g_spherical(x))
+        self.mu_Q_sphericalf = theano.function([x],self.mu_Q_spherical(x))
 
         ## optionally use spherical coordinates in chart computations
         #if use_spherical_coords:
