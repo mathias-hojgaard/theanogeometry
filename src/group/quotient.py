@@ -100,7 +100,7 @@ def lift_to_fiber(x,x0,G,M):
                 constraints={'type':'ineq','fun':lambda hatxi: np.min((G.injectivity_radius.eval()-np.max(hatxi),
                                                                       1e-8-np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2))},
                 ).x
-    except NameError: # injectivity radius not defined
+    except AttributeError: # injectivity radius not defined
         hatxi = minimize(shoot,np.zeros(G.dim.eval())).x
     l0 = G.expf(G.VtoLAf(hatxi))
     try: # project to group if to_group function is available

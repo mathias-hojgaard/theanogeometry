@@ -35,6 +35,12 @@ class GLN(LieGroup):
 
         self.dim = constant(N*N) # group dimension
 
+        # project to group (here using QR factorization)
+        def to_group(g):
+            return g
+        g = self.sym_element()
+        self.to_groupf = self.function(to_group)
+
         ## coordinate chart on the linking Lie algebra, trival in this case
         def VtoLA(hatxi): # from \RR^G.dim to LA
             if hatxi.type == T.vector().type:
