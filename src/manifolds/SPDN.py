@@ -40,15 +40,16 @@ class SPDN(EmbeddedManifold):
         gs = T.tensor3() # sequence of \RR^{NxN} matrices
         def act(g,q):
             if g.type == T.matrix().type:
-                return T.tensordot(g,T.tensordot(q.reshape((N,N)),g,(1,1)),(1,0))
+                return T.tensordot(g,T.tensordot(q.reshape((N,N)),g,(1,1)),(1,0)).flatten()
             elif g.type == T.tensor3().type: # list of matrices
                 (cout, updates) = theano.scan(fn=lambda g,x: T.tensordot(g,T.tensordot(q.reshape((N,N)),g,(1,1)),(1,0)),
                 outputs_info=[T.eye(N)],
-                sequences=[g.dimshuffle((2,0,1))])
+                sequences=[g])
 
-                return cout.dimshuffle((1,2,0))
+                return cout.reshape((-1,N*N))
             else:
                 assert(False)
+        self.act = act
         self.actf = theano.function([g,x], act(g,x))
         self.actsf = theano.function([gs,x], act(gs,x))
 
@@ -68,7 +69,7 @@ class SPDN(EmbeddedManifold):
 
 
     def plot_path(self, x,color_intensity=1.,color=None,linewidth=3.,prevx=None,ellipsoid=None,i=None,maxi=None):
-        assert(len(x.shape)>2)
+        assert(len(x.shape)>1)
         for i in range(x.shape[0]):
             self.plotx(x[i],
                   linewidth=linewidth if i==0 or i==x.shape[0]-1 else .3,
@@ -77,9 +78,11 @@ class SPDN(EmbeddedManifold):
         return
 
     def plotx(self, x,color_intensity=1.,color=None,linewidth=3.,prevx=None,ellipsoid=None,i=None,maxi=None):
+        x = x.reshape((self.N.eval(),self.N.eval()))
         (w,V) = np.linalg.eigh(x)
         s = np.sqrt(w[np.newaxis,:])*V # scaled eigenvectors
         if prevx is not None:
+            prevx = prevx.reshape((self.N.eval(),self.N.eval()))
             (prevw,prevV) = np.linalg.eigh(prevx)
             prevs = np.sqrt(prevw[np.newaxis,:])*prevV # scaled eigenvectors
             ss = np.stack((prevs,s))
