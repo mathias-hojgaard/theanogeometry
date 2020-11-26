@@ -101,7 +101,12 @@ def lift_to_fiber(x,x0,G,M):
                                                                       1e-8-np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2))},
                 ).x
     except AttributeError: # injectivity radius not defined
-        hatxi = minimize(shoot,np.zeros(G.dim.eval())).x
+#         hatxi = minimize(shoot,
+#                 np.zeros(G.dim.eval()),
+#                 method='COBYLA',
+#                 constraints={'type':'ineq','fun':lambda hatxi: 1e-8-np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2}).x
+        hatxi = minimize(lambda hatxi: np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2,
+                         np.zeros(G.dim.eval())).x
     l0 = G.expf(G.VtoLAf(hatxi))
     try: # project to group if to_group function is available
         l0 = G.to_groupf(l0)
