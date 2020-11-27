@@ -25,7 +25,7 @@ def iterative_mle(obss,log_p_T,update_thetas,options):
         log_likelihoods = np.zeros(options['epochs'])
         
         # initial thetas
-        thetas = np.array(options['initial'])
+        thetas = tuple(np.array(theta) for theta in options['initial'])
         try:
             if options['verbose']:
                 print("initial thetas:", thetas)

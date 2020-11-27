@@ -119,8 +119,9 @@ class Ellipsoid(EmbeddedManifold):
         g = T.matrix() # group matrix
         gs = T.tensor3() # sequence of matrices
         self.act = lambda g,x: T.tensordot(g,x,(1,0))
+        self.acts = lambda g,x: T.tensordot(g,x,(2,0))
         self.actf = theano.function([g,x], self.act(g,x))
-        self.actsf = theano.function([gs,x], self.act(gs,x))
+        self.actsf = theano.function([gs,x], self.acts(gs,x))
 
         # Logarithm with standard Riemannian metric on S^2        
         self.StdLogf = self.coords_function(self.StdLog,self.sym_element())

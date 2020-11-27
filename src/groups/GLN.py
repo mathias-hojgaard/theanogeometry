@@ -35,9 +35,10 @@ class GLN(LieGroup):
 
         self.dim = constant(N*N) # group dimension
 
-        # project to group (here using QR factorization)
+        # project to group, here with minimum eigenvalue 1e-3
         def to_group(g):
-            return g
+            (w,V) = T.nlinalg.eigh(g)
+            return T.dot(V,T.dot(T.diag(T.maximum(w,1e-3*T.ones(N))),V.T))
         g = self.sym_element()
         self.to_groupf = self.function(to_group)
 
