@@ -20,21 +20,28 @@
 from src.setup import *
 from src.utils import *
 
+def horz_vert_split(x,proj,G,M):
+    # compute kernel of proj derivative with respect to inv A metric
+    rank = M.dim
+    Xframe = T.tensordot(G.invpf(x,G.eiLA),G.sigma,(2,0))
+    Xframe_inv = T.nlinalg.MatrixPinv()(Xframe.reshape((-1,G.dim)))
+    dproj = T.tensordot(T.jacobian(proj(x).flatten(),x),
+                        Xframe,
+                       ((1,2),(0,1))).reshape((proj(x).shape[0],G.dim))
+    (_,_,Vh) = T.nlinalg.svd(dproj,full_matrices=True)
+    ns = Vh[rank:].T # null space
+    proj_ns = T.tensordot(ns,ns,(1,1))    
+    horz = Vh[0:rank].T # horz space
+    proj_horz = T.tensordot(horz,horz,(1,1))
+    
+    return (Xframe,Xframe_inv,proj_horz,proj_ns,horz)
+
 # hit target v at time t=Tend
 def get_sde_fiber(sde_f,proj,G,M):
     def sde_fiber(dW,t,x,*ys):
         (det,sto,X,*dys_sde) = sde_f(dW,t,x,*ys)
         
-        # compute kernel of proj derivative with respect to inv A metric
-        rank = M.dim
-        Xframe = T.tensordot(G.invpf(x,G.eiLA),G.sigma,(2,0))
-        Xframe_inv = T.nlinalg.MatrixPinv()(Xframe.reshape((-1,G.dim)))
-        dproj = T.tensordot(T.jacobian(proj(x).flatten(),x),
-                            Xframe,
-                           ((1,2),(0,1))).reshape((proj(x).shape[0],G.dim))
-        (_,_,Vh) = T.nlinalg.svd(dproj,full_matrices=True)
-        ns = Vh[rank:].T # null space
-        proj_ns = T.tensordot(ns,ns,(1,1))
+        (Xframe,Xframe_inv,_,proj_ns,_) = horz_vert_split(x,proj,G,M)
         
         det = T.tensordot(Xframe,T.tensordot(proj_ns,T.tensordot(Xframe_inv,det.flatten(),(1,0)),(1,0)),(2,0)).reshape(x.shape)
         sto = T.tensordot(Xframe,T.tensordot(proj_ns,T.tensordot(Xframe_inv,sto.flatten(),(1,0)),(1,0)),(2,0)).reshape(x.shape)
@@ -48,16 +55,7 @@ def get_sde_horz(sde_f,proj,G,M):
     def sde_horz(dW,t,x,*ys):
         (det,sto,X,*dys_sde) = sde_f(dW,t,x,*ys)
         
-        # compute kernel of proj derivative with respect to inv A metric
-        rank = M.dim
-        Xframe = T.tensordot(G.invpf(x,G.eiLA),G.sigma,(2,0))
-        Xframe_inv = T.nlinalg.MatrixPinv()(Xframe.reshape((-1,G.dim)))
-        dproj = T.tensordot(T.jacobian(proj(x).flatten(),x),
-                            Xframe,
-                           ((1,2),(0,1))).reshape((proj(x).shape[0],G.dim))
-        (_,_,Vh) = T.nlinalg.svd(dproj,full_matrices=True)
-        horz = Vh[0:rank].T # horz space
-        proj_horz = T.tensordot(horz,horz,(1,1))
+        (Xframe,Xframe_inv,proj_horz,_,_) = horz_vert_split(x,proj,G,M)        
         
         det = T.tensordot(Xframe,T.tensordot(proj_horz,T.tensordot(Xframe_inv,det.flatten(),(1,0)),(1,0)),(2,0)).reshape(x.shape)
         sto = T.tensordot(Xframe,T.tensordot(proj_horz,T.tensordot(Xframe_inv,sto.flatten(),(1,0)),(1,0)),(2,0)).reshape(x.shape)
@@ -71,15 +69,7 @@ def get_sde_lifted(sde_f,proj,G,M):
     def sde_lifted(dW,t,x,*ys):
         (det,sto,X,*dys_sde) = sde_f(dW,t,proj(x),*ys)
         
-        # compute kernel of proj derivative with respect to inv A metric
-        rank = M.dim
-        Xframe = T.tensordot(G.invpf(x,G.eiLA),G.sigma,(2,0))
-        Xframe_inv = T.nlinalg.MatrixPinv()(Xframe.reshape((-1,G.dim)))
-        dproj = T.tensordot(T.jacobian(proj(x).flatten(),x),
-                            Xframe,
-                           ((1,2),(0,1))).reshape((proj(x).shape[0],G.dim))
-        (_,_,Vh) = T.nlinalg.svd(dproj,full_matrices=True)
-        horz = Vh[0:rank].T # basis for horz space
+        (Xframe,Xframe_inv,proj_horz,_,horz) = horz_vert_split(x,proj,G,M) 
         
         det = T.tensordot(Xframe,T.tensordot(horz,T.tensordot(Xframe_inv,det.flatten(),(1,0)),(1,0)),(2,0)).reshape(x.shape)
         sto = T.tensordot(Xframe,T.tensordot(horz,T.tensordot(Xframe_inv,sto.flatten(),(1,0)),(1,0)),(2,0)).reshape(x.shape)
@@ -100,13 +90,15 @@ def lift_to_fiber(x,x0,G,M):
                 constraints={'type':'ineq','fun':lambda hatxi: np.min((G.injectivity_radius.eval()-np.max(hatxi),
                                                                       1e-8-np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2))},
                 ).x
-    except AttributeError: # injectivity radius not defined
-#         hatxi = minimize(shoot,
-#                 np.zeros(G.dim.eval()),
-#                 method='COBYLA',
-#                 constraints={'type':'ineq','fun':lambda hatxi: 1e-8-np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2}).x
         hatxi = minimize(lambda hatxi: np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2,
-                         np.zeros(G.dim.eval())).x
+                         hatxi).x # fine tune    
+    except AttributeError: # injectivity radius not defined
+        hatxi = minimize(shoot,
+                np.zeros(G.dim.eval()),
+                method='COBYLA',
+                constraints={'type':'ineq','fun':lambda hatxi: 1e-8-np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2}).x
+        hatxi = minimize(lambda hatxi: np.linalg.norm(M.actf(G.expf(G.VtoLAf(hatxi)),x0)-x)**2,
+                         hatxi).x # fine tune
     l0 = G.expf(G.VtoLAf(hatxi))
     try: # project to group if to_group function is available
         l0 = G.to_groupf(l0)

@@ -32,8 +32,8 @@ class SPDN(EmbeddedManifold):
     def __init__(self,N=3):
         EmbeddedManifold.__init__(self)
         self.N = constant(N)
-        self.dim = constant(N*N)
-        self.emb_dim = self.dim
+        self.dim = constant(N*(N+1)//2)
+        self.emb_dim = constant(N*N)
 
         x = self.sym_element()
         g = T.matrix() # \RR^{NxN} matrix

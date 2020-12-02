@@ -63,6 +63,9 @@ class GLN(LieGroup):
         self.Logm = lambda g : Logm()(g)
 
         super(GLN,self).initialize()
+        
+    def __str__(self):
+        return "GL(%d) (dimension %d)" % (self.N.eval(),self.dim.eval())        
 
     def plot_path(self, g,color_intensity=1.,color=None,linewidth=3.,prevg=None):
         assert(len(g.shape)>2)
