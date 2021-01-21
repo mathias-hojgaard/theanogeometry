@@ -89,11 +89,12 @@ def plot_density_estimate(M, obss, alpha=.2, limits=None, border=1.5, bandwidth=
     if colorbar:
         plt.colorbar(m, shrink=0.7)
 
+
 #### Spherical plotting functions
 # plot general function on S2
-def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=None, colorbar=True):
-        # grids
-        phi, theta = np.meshgrid(np.linspace(0.,2.*np.pi,pts),np.linspace(np.pi/2,-np.pi/2,pts))
+def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=None, colorbar=True, border = 1e-2):
+        # grids        
+        phi, theta = np.meshgrid(np.linspace(0.,2.*np.pi-border,pts),np.linspace(np.pi/2-border,-np.pi/2+border,pts))
         phitheta = np.vstack([phi.ravel(), theta.ravel()]).T
         xs = np.apply_along_axis(M.F_sphericalf,1,phitheta)
         X = xs[:,0].reshape(phi.shape)
@@ -101,8 +102,8 @@ def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=N
         Z = xs[:,2].reshape(phi.shape)
         
         # plot
-        ax = plt.gca()        
-        if not parallel:                            
+        ax = plt.gca()
+        if not parallel:
             fs = np.apply_along_axis(f,1,xs)
         else:
             try:
@@ -115,10 +116,10 @@ def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=N
                 mpu.closePool()
                 raise
             else:
-                mpu.closePool()        
+                mpu.closePool()
         if vmin is None:
             norm = mpl.colors.Normalize()
-            norm.autoscale(fs)                
+            norm.autoscale(fs)
         else:
             norm = mpl.colors.Normalize(vmin=vmin,vmax=np.max(fs))
         colors = cmap(norm(fs)).reshape(phi.shape+(4,))
