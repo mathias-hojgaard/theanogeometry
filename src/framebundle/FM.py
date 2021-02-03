@@ -23,15 +23,15 @@ from src.params import *
 #from src.metric import *
 from src.utils import *
 
-def initialize(M):
+def initialize(M,do_chart_update=None):
     """ Frame Bundle geometry """
     
     d  = M.dim
 
-    x = M.element()
-    x1 = M.element()
-    v = M.vector()
-    nu = M.frame()
+    x = M.sym_element()
+    x1 = M.sym_element()
+    v = M.sym_vector()
+    nu = M.sym_frame()
 
     def sym_FM_element():
         """ return element of FM as concatenation (x,nu) flattened """
@@ -39,7 +39,7 @@ def initialize(M):
     def sym_FM_vector():
         """ vector in TFM """
         return T.vector()
-    def Fsym_M_covector():
+    def sym_FM_covector():
         """ covector in T^*FM """
         return T.vector()
     M.sym_FM_element = sym_FM_element
@@ -51,9 +51,9 @@ def initialize(M):
     p = M.sym_FM_covector()
 
     ##### Cometric matrix:
-    def g_FMsharp(u,chart):
-        x = u[0:d]
-        nu = u[d:].reshape((d,d))#.reshape((d,M.m))
+    def g_FMsharp(u):
+        x = (u[0][0:d],u[1])
+        nu = u[0][d:].reshape((d,d))#.reshape((d,M.m))
         GamX = T.tensordot(M.Gamma_g(x), nu, axes = [2,0]).dimshuffle(0,2,1)
     
         delta = T.eye(nu.shape[0],nu.shape[1])
@@ -70,7 +70,11 @@ def initialize(M):
     ##### Hamiltonian on FM based on the pseudo metric tensor: 
     lambdag0 = 0
 
-    def H_FM(x,nu,px,pnu):
+    def H_FM(u,p):
+        x = (u[0][0:d],u[1])
+        nu = u[0][d:].reshape((d,-1))
+        px = p[0:d]
+        pnu = p[d:].reshape((d,-1))
         
         GamX = T.tensordot(M.Gamma_g(x), nu, 
                            axes = [2,0]).dimshuffle(0,2,1)
@@ -94,29 +98,56 @@ def initialize(M):
     
         return 0.5*(pxgpx + pxgpnu + pnugpx + pnugpnu)
 
-    M.H_FM = lambda q,p: H_FM(q[0:d],q[d:].reshape((d,-1)),\
-                               p[0:d],p[d:].reshape((d,-1)))
-    M.H_FMf = theano.function([q,p],M.H_FM(q,p))
+    M.H_FM = H_FM
+    M.H_FMf = M.coords_function(M.H_FM,p)
 
     ##### Evolution equations:
     dq = lambda q,p: T.grad(M.H_FM(q,p),p)
-    dp = lambda q,p: -T.grad(M.H_FM(q,p),q)
+    dp = lambda q,p: -T.grad(M.H_FM(q,p),q[0])
 
     def ode_Hamiltonian_FM(t,x): # Evolution equations at (p,q).
         dqt = dq(x[0],x[1])
         dpt = dp(x[0],x[1])
         return T.stack((dqt,dpt))
-    M.Hamiltonian_dynamics_FM = lambda q,p: integrate(ode_Hamiltonian_FM,T.stack((q,p)))
-    M.Hamiltonian_dynamics_FMf = theano.function([q,p], M.Hamiltonian_dynamics_FM(q,p))
+
+    def chart_update_FM(t,u,chart):
+        if do_chart_update is None:
+            return (t,u,chart)
+
+        x = (u[0:d],chart)
+        nu = u[d:].reshape((d,-1))
+
+        new_chart = M.centered_chart(M.F(x))
+        new_x = M.update_coords(x,new_chart)[0]
+        new_nu = M.update_covector(x,new_x,new_chart,nu)
+        
+        return theano.ifelse.ifelse(do_chart_update(x),
+                (t,u,chart),
+                (t,T.stack((new_x,new_nu)),new_chart)
+            )
+    M.chart_update_FM = chart_update_FM
+
+    M.Hamiltonian_dynamics_FM = lambda q,p: integrate(ode_Hamiltonian_FM,update_chart_FM,T.stack((q[0],p)),q[1])
+    M.Hamiltonian_dynamics_FMf = M.coords_function(M.Hamiltonian_dynamics_FM,p)
 
     ## Geodesic
-    M.Exp_Hamiltonian_FM = lambda q,p: M.Hamiltonian_dynamics_FM(q,p)[1][-1,0]
-    M.Exp_Hamiltonian_FMt = lambda q,p: M.Hamiltonian_dynamics_FM(q,p)[1][:,0].dimshuffle((1,0))
-    M.Exp_Hamiltonian_FMf = theano.function([q,p], M.Exp_Hamiltonian_FM(q,p))
-    M.Exp_Hamiltonian_FMtf = theano.function([q,p], M.Exp_Hamiltonian_FMt(q,p))
+    def Exp_Hamiltonian_FM(u,p):
+        curve = M.Hamiltonian_dynamics(u,p)
+        u = curve[1][-1,0]
+        chart = curve[2][-1]
+        return(u,chart)
+    M.Exp_Hamiltonian = Exp_Hamiltonian
+    M.Exp_Hamiltonianf = M.coords_function(M.Exp_Hamiltonian,p)
+    def Exp_Hamiltoniant_FM(u,p):
+        curve = M.Hamiltonian_dynamics(u,p)
+        u = curve[1][:,0].dimshuffle((1,0))
+        chart = curve[2]
+        return(u,chart)
+    M.Exp_Hamiltoniant = Exp_Hamiltoniant
+    M.Exp_Hamiltoniantf = M.coords_function(M.Exp_Hamiltoniant,p)
 
     # Most probable path for the driving semi-martingale
-    M.loss = lambda u,x,p: 1./d*T.sum((M.Exp_Hamiltonian_FM(u,p)[0:d] - x[0:d])**2)
+    M.loss = lambda u,x,p: 1./d*T.sum((M.Exp_Hamiltonian_FM(u,p)[0][0:d] - x[0:d])**2)
     M.lossf = theano.function([u,x,p], M.loss(u,x,p))
 
     def Log_FM(u,x):
@@ -132,8 +163,8 @@ def initialize(M):
 
     ##### Horizontal vector fields:
     def Horizontal(u):
-        x = u[0:d]
-        nu = u[d:].reshape((d,-1))
+        x = (u[0][0:d],u[1])
+        nu = u[0][d:].reshape((d,-1))
     
         # Contribution from the coordinate basis for x: 
         dx = nu
@@ -144,6 +175,6 @@ def initialize(M):
 
         return T.concatenate([dx,dnuv.T], axis = 0)
     M.Horizontal = Horizontal
-    M.Horizontalf = theano.function([u],M.Horizontal(u))
+    M.Horizontalf = M.coords_function(M.Horizontal)
     
 initialize(M)

@@ -20,7 +20,7 @@
 from src.setup import *
 from src.utils import *
 
-def initialize(M):
+def initialize(M,do_chart_update=None):
     """ Riemannian parallel transport """
 
     def ode_parallel_transport(x,chart,dx,t,xv,prevchart):
@@ -35,6 +35,9 @@ def initialize(M):
         return T.stack((T.zeros_like(x),dv))
     
     def chart_update_parallel_transport(t,xv,prevchart,x,chart,dx):
+        if do_chart_update is None:
+            return (t,xv,chart)
+
         prevx = xv[0]
         v = xv[1]
         return (t,theano.ifelse.ifelse(T.le(T.sum(T.square(chart-prevchart)),1e-5),

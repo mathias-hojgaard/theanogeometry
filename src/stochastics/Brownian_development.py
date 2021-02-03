@@ -23,19 +23,18 @@ from src.utils import *
 def initialize(M):
     """ Brownian motion from stochastic development """
 
-    x = M.element()
-    dsm = T.matrix() # derivative of Euclidean semimartingale
-    u = M.FM_element()
+    x = M.sym_element()
+    u = M.sym_FM_element()
     
     def Brownian_development(x,dWt):
         # amend x with orthogonal basis to get initial frame bundle element
         gsharpx = M.gsharp(x)
         nu = theano.tensor.slinalg.Cholesky()(gsharpx)
-        u = T.concatenate((x,nu.flatten()))
+        u = (T.concatenate((x[0],nu.flatten())),x[1])
         
-        (ts,us) = M.stochastic_development(u,dWt)
+        (ts,us,charts) = M.stochastic_development(u,dWt)
         
-        return (ts,us[:,0:M.dim])
+        return (ts,us[:,0:M.dim],charts)
     
     M.Brownian_development = Brownian_development
-    M.Brownian_developmentf = theano.function([x,dWt], M.Brownian_development(x,dWt)) 
+    M.Brownian_developmentf = M.coords_function(M.Brownian_development,dWt) 
