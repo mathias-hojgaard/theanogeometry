@@ -40,7 +40,7 @@ class GLN(LieGroup):
             _min_eig = 1e-3
             w, V = T.nlinalg.eig(g.astype('complex128'))
             w_prime = T.where(abs(w) < _min_eig, _min_eig, w)
-            return T.dot(V,T.dot(T.diag(w_prime),V.T).real
+            return T.dot(V,T.dot(T.diag(w_prime),V.T)).real
         g = self.sym_element()
         self.to_groupf = self.function(to_group)
 
