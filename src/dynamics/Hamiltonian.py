@@ -64,7 +64,7 @@ def initialize(M,do_chart_update=None):
     M.Exp_Hamiltonianf = M.coords_function(M.Exp_Hamiltonian,p)
     def Exp_Hamiltoniant(q,p):
         curve = M.Hamiltonian_dynamics(q,p)
-        q = curve[1][:,0].dimshuffle((1,0))
+        q = curve[1][:,0]
         chart = curve[2]
         return(q,chart)
     M.Exp_Hamiltoniant = Exp_Hamiltoniant

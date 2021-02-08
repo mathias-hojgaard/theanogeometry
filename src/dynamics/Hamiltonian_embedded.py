@@ -21,7 +21,8 @@ from src.setup import *
 from src.utils import *
 
 ###############################################################
-# geodesic integration, Hamiltonian form                      #
+# geodesic integration, Hamiltonian form - using embeddeding  #
+# space, i.e. no charts                                       #
 ###############################################################
 
 def initialize(M):
@@ -36,13 +37,13 @@ def initialize(M):
         dpt = dp(x[0],x[1])
         return T.stack((dqt,dpt))
     M.Hamiltonian_dynamics = lambda q,p: integrate(ode_Hamiltonian,None,T.stack((q,p)),None)
-    M.Hamiltonian_dynamicsf = theano.function([q,p], M.Hamiltonian_dynamics(q,p))
+    M.Hamiltonian_dynamicsf = theano.function([q,p],M.Hamiltonian_dynamics(q,p))
 
     ## Geodesic
     M.Exp_Hamiltonian = lambda q,p: M.Hamiltonian_dynamics(q,p)[1][-1,0]
-    M.Exp_Hamiltoniant = lambda q,p: M.Hamiltonian_dynamics(q,p)[1][:,0].dimshuffle((1,0))
-    M.Exp_Hamiltonianf = theano.function([q,p], M.Exp_Hamiltonian(q,p))
-    M.Exp_Hamiltoniantf = theano.function([q,p], M.Exp_Hamiltoniant(q,p))
+    M.Exp_Hamiltoniant = lambda q,p: M.Hamiltonian_dynamics(q,p)[1][:,0]
+    M.Exp_Hamiltonianf = theano.function([q,p],M.Exp_Hamiltonian(q,p))
+    M.Exp_Hamiltoniantf = theano.function([q,p],M.Exp_Hamiltoniant(q,p))
 
     ## Group geodesics
     #try:

@@ -38,7 +38,7 @@ def initialize(M,do_chart_update=None):
     
         return det
 
-    M.development = lambda u,dgamma: integrate(ode_development,chart_update_FM,u,dgamma)
+    M.development = lambda u,dgamma: integrate(ode_development,M.chart_update_FM,u,dgamma)
     M.developmentf = M.coords_function(M.development,dgamma)
 
     # Stochastic development
@@ -55,4 +55,3 @@ def initialize(M,do_chart_update=None):
     M.stochastic_development = lambda u,dsm: integrate_sde(sde_development,M.chart_update_FM,integrator_stratonovich,u,dsm)
     M.stochastic_developmentf = M.coords_function(M.stochastic_development,dsm)
 
-initialize(M)
