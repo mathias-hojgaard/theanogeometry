@@ -24,34 +24,34 @@ def initialize(M,do_chart_update=None):
     """ development and stochastic development from R^d to M """
 
     t = T.scalar()
-    dgamma = T.matrix() # velocity of Euclidean curve
+    dgammas = T.matrix() # velocity of Euclidean curve
     dsm = T.matrix() # derivative of Euclidean semimartingale
     u = M.sym_FM_element()
     d = M.dim
 
     # Deterministic development
-    def ode_development(dgamma,t,u):
-        nu = u[0][d:].reshape((d,-1))
+    def ode_development(dgamma,t,u,chart):
+        nu = u[d:].reshape((d,-1))
         m = nu.shape[1]
 
-        det = T.tensordot(M.Horizontal(u)[:,0:m], dgamma, axes = [1,0])
+        det = T.tensordot(M.Horizontal((u,chart))[:,0:m], dgamma, axes = [1,0])
     
         return det
 
-    M.development = lambda u,dgamma: integrate(ode_development,M.chart_update_FM,u,dgamma)
-    M.developmentf = M.coords_function(M.development,dgamma)
+    M.development = lambda u,dgammas: integrate(ode_development,M.chart_update_FM,u[0],u[1],dgammas)
+    M.developmentf = M.coords_function(M.development,dgammas)
 
     # Stochastic development
-    def sde_development(dsm,t,u):
-        nu = u[0][d:].reshape((d,-1))
+    def sde_development(dsm,t,u,chart):
+        nu = u[d:].reshape((d,-1))
         m = nu.shape[1]
 
-        sto = T.tensordot(M.Horizontal(u)[:,0:m], dsm, axes = [1,0])
+        Hu = M.Horizontal((u,chart))
+        
+        sto = T.tensordot(Hu[:,0:m], dsm, axes = [1,0])
     
-        return (T.zeros_like(sto), sto, M.Horizontal(u)[:,0:m])
+        return (T.zeros_like(sto), sto, Hu[:,0:m])
 
     M.sde_development = sde_development
-    M.sde_developmentf = M.coords_function(M.sde_development,dsm) 
-    M.stochastic_development = lambda u,dsm: integrate_sde(sde_development,M.chart_update_FM,integrator_stratonovich,u,dsm)
+    M.stochastic_development = lambda u,dsm: integrate_sde(sde_development,integrator_stratonovich,M.chart_update_FM,u[0],u[1],dsm)
     M.stochastic_developmentf = M.coords_function(M.stochastic_development,dsm)
-

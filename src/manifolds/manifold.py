@@ -218,8 +218,12 @@ class EmbeddedManifold(Manifold):
             #self.get_coordsf = get_get_coords()
             
     # plot path
-    def plot_path(self, xs, u=None, vs=None, v_steps=np.arange(0,n_steps.eval()), i0=0, color='b', 
+    def plot_path(self, xs, u=None, vs=None, v_steps=None, i0=0, color='b', 
                   color_intensity=1., linewidth=1., s=15., prevx=None, prevchart=None, last=True):
+        
+        if vs is not None and v_steps is not None:
+            v_steps = np.arange(0,n_steps.eval())
+        
         xs = list(xs)
         N = len(xs)
         prevx = None
@@ -244,10 +248,13 @@ class EmbeddedManifold(Manifold):
         return
 
     # plot x. x can be either in coordinates or in R^3
-    def plotx(self, x, u=None, v=None, v_steps=np.arange(0,n_steps.eval()), i=0, color='b',               
+    def plotx(self, x, u=None, v=None, v_steps=None, i=0, color='b',               
               color_intensity=1., linewidth=1., s=15., prevx=None, prevchart=None, last=True):
 
         assert(type(x) == type(()) or x.shape[0] == self.emb_dim.eval())
+        
+        if v is not None and v_steps is None:
+            v_steps = np.arange(0,n_steps.eval())        
 
         if type(x) == type(()): # map to S2
             Fx = self.Ff(x)
