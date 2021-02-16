@@ -129,15 +129,22 @@ class LieGroup(EmbeddedManifold):
         ## surjective mapping \psi:\RR^G_dim\rightarrow G
         self.psi = lambda hatxi: self.exp(self.VtoLA(hatxi))
         self.invpsi = lambda g: self.LAtoV(self.log(g))
-        def dpsi(hatxi,v):
-            dpsi = T.jacobian(self.exp(self.VtoLA(hatxi)).flatten(),hatxi).reshape((self.N,self.N,self.dim))
+        def dpsi(hatxi,v=None):
+            dpsi = T.jacobian(self.psi(hatxi).flatten(),hatxi).reshape((self.N,self.N,self.dim))
             if v:
                 return T.tensordot(dpsi,v,(2,0))
             return dpsi
         self.dpsi = dpsi
+        def dinvpsi(g,vg=None):
+            dinvpsi = T.jacobian(self.invpsi(g).flatten(),g).reshape((self.dim,self.N,self.N))
+            if vg:
+                return T.tensordot(dinvpsi,vg,((1,2),(0,1)))
+            return dinvpsi
+        self.dinvpsi = dinvpsi        
         self.psif = theano.function([hatxi],self.psi(hatxi))
         self.invpsif = theano.function([g],self.invpsi(g))
         self.dpsif = theano.function([hatxi,v],self.dpsi(hatxi,v))
+        self.dinvpsif = theano.function([g,vg],self.dinvpsi(g,vg))
 
         ## left/right translation
         self.L = lambda g,h: T.tensordot(g,h,(1,0)) # left translation L_g(h)=gh
