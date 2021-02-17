@@ -69,6 +69,7 @@ def initialize(M,truncate_high_order_derivatives=False):
     M.sharpf = M.coords_function(M.sharp,p)
 
     ##### Christoffel symbols
+    # \Gamma^i_{kl}, indices in that order
     M.Gamma_g = lambda x: 0.5*(T.tensordot(M.gsharp(x),truncate_derivatives(M.Dg(x)),axes = [1,0])
                    +T.tensordot(M.gsharp(x),truncate_derivatives(M.Dg(x)),axes = [1,0]).dimshuffle(0,2,1)
                    -T.tensordot(M.gsharp(x),truncate_derivatives(M.Dg(x)),axes = [1,2]))

@@ -78,7 +78,7 @@ class Ellipsoid(EmbeddedManifold):
             def invF(x):
                 Rinvx = T.slinalg.Solve()(self.get_B(x[1]),x[0])
                 return T.stack([Rinvx[1]/(1+Rinvx[0]),Rinvx[2]/(1+Rinvx[0])])
-            self.do_chart_update = lambda x: T.le(T.sum(T.square(x[0])),1) # look for a new chart if false
+            self.do_chart_update = lambda x: T.le(T.sum(T.square(x[0])),.2) # look for a new chart if false
         # spherical coordinates, no charts
         x = self.sym_coords() # Point on M in coordinates
         self.F_spherical = lambda phitheta: params*T.stack([T.sin(phitheta[1]-np.pi/2)*T.cos(phitheta[0]),T.sin(phitheta[1]-np.pi/2)*T.sin(phitheta[0]),T.cos(phitheta[1]-np.pi/2)])

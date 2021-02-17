@@ -24,34 +24,52 @@ def initialize(M,do_chart_update=None):
     """ development and stochastic development from R^d to M """
 
     t = T.scalar()
-    dgammas = T.matrix() # velocity of Euclidean curve
+    dgamma = T.matrix() # velocity of Euclidean curve
     dsm = T.matrix() # derivative of Euclidean semimartingale
     u = M.sym_FM_element()
     d = M.dim
 
     # Deterministic development
     def ode_development(dgamma,t,u,chart):
-        nu = u[d:].reshape((d,-1))
+        u = (u,chart)
+        nu = u[0][d:].reshape((d,-1))
         m = nu.shape[1]
 
-        det = T.tensordot(M.Horizontal((u,chart))[:,0:m], dgamma, axes = [1,0])
+        det = T.tensordot(M.Horizontal(u)[:,0:m], dgamma, axes = [1,0])
     
         return det
+    
+#     def chart_update(t,u,chart,dgamma=None):
+#         if do_chart_update is None:
+#             return (t,u,chart)
 
-    M.development = lambda u,dgammas: integrate(ode_development,M.chart_update_FM,u[0],u[1],dgammas)
-    M.developmentf = M.coords_function(M.development,dgammas)
+#         x = (u[0:d],chart)
+#         nu = u[d:].reshape((d,-1))
+
+#         new_chart = M.centered_chart(M.F(x))
+#         new_x = M.update_coords(x,new_chart)[0]
+#         new_nu = M.update_vector(x,new_x,new_chart,nu)
+
+#         return theano.ifelse.ifelse(do_chart_update(x),
+#                 (t,u,chart),
+#                 (t,T.concatenate((new_x,new_nu.flatten())),new_chart)
+#             )
+
+    M.development = lambda u,dgamma: integrate(ode_development,M.chart_update_FM,u[0],u[1],dgamma)
+    M.developmentf = M.coords_function(M.development,dgamma)
 
     # Stochastic development
     def sde_development(dsm,t,u,chart):
-        nu = u[d:].reshape((d,-1))
+        u = (u,chart)
+        nu = u[0][d:].reshape((d,-1))
         m = nu.shape[1]
 
-        Hu = M.Horizontal((u,chart))
-        
-        sto = T.tensordot(Hu[:,0:m], dsm, axes = [1,0])
+        sto = T.tensordot(M.Horizontal(u)[:,0:m], dsm, axes = [1,0])
     
-        return (T.zeros_like(sto), sto, Hu[:,0:m])
+        return (T.zeros_like(sto), sto, M.Horizontal(u)[:,0:m])
 
     M.sde_development = sde_development
-    M.stochastic_development = lambda u,dsm: integrate_sde(sde_development,integrator_stratonovich,M.chart_update_FM,u[0],u[1],dsm)
+    M.stochastic_development = lambda u,dsm: integrate_sde(sde_development,integrator_stratonovich,
+                                                           M.chart_update_FM,u[0],u[1],dsm)
     M.stochastic_developmentf = M.coords_function(M.stochastic_development,dsm)
+    
