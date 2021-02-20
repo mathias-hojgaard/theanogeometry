@@ -22,10 +22,12 @@ from src.setup import *
 from src.utils import *
 from sklearn.decomposition import PCA
 
-def tangent_PCA(M, Logf, mean, y, x0=None, options=None):
+def tangent_PCA(Logf, mean, y):
+    y = list(y) # make sure y is subscriptable
+    
     try:
         mpu.openPool()
-        N = y.shape[0]
+        N = len(y)
         sol = mpu.pool.imap(lambda pars: (Logf(mean,y[pars[0]],np.zeros(mean.shape))[0],),mpu.inputArgs(range(N)))
         res = list(sol)
         Logs = mpu.getRes(res,0)

@@ -23,7 +23,7 @@ from src.utils import *
 ###############################################################
 # Eulerian / stochastic EPDiff acting on landmarks
 ###############################################################
-def initialize(M,k=None,do_chart_update=None):
+def initialize(M,k=None):
     q = M.sym_coords()
     p = M.sym_coordscovector()
     
@@ -65,7 +65,7 @@ def initialize(M,k=None,do_chart_update=None):
         return (det,sto,X,sigmas_x,sigmas_a)
 
     def chart_update_Eulerian(t,xp,chart,sigmas_x,sigmas_a):
-        if do_chart_update is None:
+        if M.do_chart_update is None:
             return (t,xp,chart,sigmas_x,sigmas_a)
 
         p = xp[1]
@@ -75,7 +75,7 @@ def initialize(M,k=None,do_chart_update=None):
         new_x = M.update_coords(x,new_chart)[0]
         new_p = M.update_covector(x,new_x,new_chart,p)
         
-        return theano.ifelse.ifelse(do_chart_update(x),
+        return theano.ifelse.ifelse(M.do_chart_update(x),
                 (t,xp,chart,sigmas_x,sigmas_a),
                 (t,T.stack((new_x,new_p)),new_chart,sigmas_x,sigmas_a)
             )

@@ -25,7 +25,7 @@ import src.linalg as linalg
 #######################################################################
 
 # hit target v at time t=Tend
-def get_sde_guided(sde_f, phi, sqrtCov, A=None, method='DelyonHu', integration='ito', use_charts=False, chart_update=None):
+def get_sde_guided(M, sde_f, phi, sqrtCov, A=None, method='DelyonHu', integration='ito', use_charts=False, chart_update=None, v_chart_update=None):
     assert (integration == 'ito' or integration == 'stratonovich')
     assert (method == 'DelyonHu')  # more general schemes not implemented
     
@@ -34,7 +34,8 @@ def get_sde_guided(sde_f, phi, sqrtCov, A=None, method='DelyonHu', integration='
             return (t, x, chart, log_likelihood, log_varphi, h, v, *ys)
 
         (t_new, x_new, chart_new, *ys_new) = chart_update(t,x,chart,*ys)
-        return (t_new, x_new, chart_new, log_likelihood, log_varphi, h, v, *ys_new)
+        v_new = v if v_chart_update is None else M.update_coords((v,chart),chart_new)[0]
+        return (t_new, x_new, chart_new, log_likelihood, log_varphi, h, v_new, *ys_new)
 
     def sde_guided(dW, t, x, chart, log_likelihood, log_varphi, h, v, *ys):
         if not use_charts:
@@ -102,14 +103,14 @@ def get_sde_guided(sde_f, phi, sqrtCov, A=None, method='DelyonHu', integration='
 def get_guided_likelihood(M, sde_f, phi, sqrtCov, A=None, method='DelyonHu', integration='ito', use_charts=False, chart_update=None):
     v = M.sym_element()
     if not use_charts:
-        sde_guided = get_sde_guided(sde_f, phi, sqrtCov, A, method, integration)
+        sde_guided = get_sde_guided(M, sde_f, phi, sqrtCov, A, method, integration)
         guided = lambda q, v, dWt: integrate_sde(sde_guided,
                                                  integrator_ito if method == 'ito' else integrator_stratonovich,
                                                  None,
                                                  q, None, dWt, constant(0.), constant(0.), T.zeros_like(dWt[0]), v)
         guidedf = M.function(guided,v,dWt)
     else:
-        (sde_guided,chart_update_guided) = get_sde_guided(sde_f, phi, sqrtCov, A, method, integration, use_charts=True, chart_update=chart_update)
+        (sde_guided,chart_update_guided) = get_sde_guided(M, sde_f, phi, sqrtCov, A, method, integration, use_charts=True, chart_update=chart_update)
         guided = lambda q, v, dWt: integrate_sde(sde_guided,
                                                  integrator_ito if method == 'ito' else integrator_stratonovich,
                                                  chart_update_guided,

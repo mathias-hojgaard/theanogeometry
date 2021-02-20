@@ -20,7 +20,7 @@
 from src.setup import *
 from src.utils import *
 
-def initialize(M,do_chart_update=None):
+def initialize(M):
     """ Brownian motion in coordinates """
 
     x = M.sym_element()
@@ -35,13 +35,13 @@ def initialize(M,do_chart_update=None):
         return (det,sto,X)
     
     def chart_update_Brownian_coords(t,x,chart):
-        if do_chart_update is None:
+        if M.do_chart_update is None:
             return (t,x,chart)
 
         new_chart = M.centered_chart(M.F((x,chart)))
         new_x = M.update_coords((x,chart),new_chart)[0]
 
-        return theano.ifelse.ifelse(do_chart_update((x,chart)),
+        return theano.ifelse.ifelse(M.do_chart_update((x,chart)),
                 (t,x,chart),
                 (t,new_x,new_chart)
             )

@@ -24,20 +24,23 @@ def initialize(M,f=None):
     """ numerical Riemannian Logarithm map """
 
     y = M.sym_element()
+    y_chart = M.sym_chart()
     v = M.sym_vector()
 
     if f is None:
         print("using M.Exp for Logarithm")
         f = M.Exp
-    loss = lambda x,v,y: 1./M.dim.eval()*T.sum(T.sqr(f(x,v)[0]-y))
+    def loss(x,v,y):
+        (x1,chart1) = f(x,v)
+        y_chart1 = M.update_coords(y,chart1)
+        return 1./M.dim.eval()*T.sum(T.sqr(x1 - y_chart1[0]))        
     dloss = lambda x,v,y: T.grad(loss(x,v,y),v)
-    dlossf = M.coords_function(lambda x,v,y: (loss(x,v,y),dloss(x,v,y)),v,y)
+    dlossf = M.coords_function(lambda x,v,y,y_chart: (loss(x,v,(y,y_chart)),dloss(x,v,(y,y_chart))),v,y,y_chart)
 
     from scipy.optimize import minimize,fmin_bfgs,fmin_cg
     def shoot(x,y,v0=None):        
-        y = M.update_coordsf(y,x[1])
         def f(w):
-            (z,dz) = dlossf(x,w.astype(theano.config.floatX),y[0])
+            (z,dz) = dlossf(x,w.astype(theano.config.floatX),y[0],y[1])
             return (tensor(z),tensor(dz))
 
         if v0 is None:

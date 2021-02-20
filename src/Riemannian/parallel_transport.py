@@ -20,7 +20,7 @@
 from src.setup import *
 from src.utils import *
 
-def initialize(M,do_chart_update=None):
+def initialize(M):
     """ Riemannian parallel transport """
 
     def ode_parallel_transport(x,chart,dx,t,xv,prevchart):
@@ -35,7 +35,7 @@ def initialize(M,do_chart_update=None):
         return T.stack((T.zeros_like(x),dv))
     
     def chart_update_parallel_transport(t,xv,prevchart,x,chart,dx):
-        if do_chart_update is None:
+        if M.do_chart_update is None:
             return (t,xv,chart)
 
         prevx = xv[0]

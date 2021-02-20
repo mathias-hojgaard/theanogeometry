@@ -20,7 +20,7 @@
 from src.setup import *
 from src.utils import *
 
-def initialize(M,do_chart_update=None):
+def initialize(M):
     """ development and stochastic development from R^d to M """
 
     t = T.scalar()
@@ -38,22 +38,6 @@ def initialize(M,do_chart_update=None):
         det = T.tensordot(M.Horizontal(u)[:,0:m], dgamma, axes = [1,0])
     
         return det
-    
-#     def chart_update(t,u,chart,dgamma=None):
-#         if do_chart_update is None:
-#             return (t,u,chart)
-
-#         x = (u[0:d],chart)
-#         nu = u[d:].reshape((d,-1))
-
-#         new_chart = M.centered_chart(M.F(x))
-#         new_x = M.update_coords(x,new_chart)[0]
-#         new_nu = M.update_vector(x,new_x,new_chart,nu)
-
-#         return theano.ifelse.ifelse(do_chart_update(x),
-#                 (t,u,chart),
-#                 (t,T.concatenate((new_x,new_nu.flatten())),new_chart)
-#             )
 
     M.development = lambda u,dgamma: integrate(ode_development,M.chart_update_FM,u[0],u[1],dgamma)
     M.developmentf = M.coords_function(M.development,dgamma)

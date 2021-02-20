@@ -20,7 +20,7 @@
 from src.setup import *
 from src.utils import *
 
-def initialize(M,do_chart_update=None):
+def initialize(M):
     x = M.sym_element()
     v = M.sym_covector()
 
@@ -32,7 +32,7 @@ def initialize(M,do_chart_update=None):
         return T.stack((dx1t,dx2t))
 
     def chart_update_geodesic(t,xv,chart):
-        if do_chart_update is None:
+        if M.do_chart_update is None:
             return (t,xv,chart)
 
         v = xv[1]
@@ -42,7 +42,7 @@ def initialize(M,do_chart_update=None):
         new_x = M.update_coords(x,new_chart)[0]
         new_v = M.update_vector(x,new_x,new_chart,v)
         
-        return theano.ifelse.ifelse(do_chart_update(x),
+        return theano.ifelse.ifelse(M.do_chart_update(x),
                 (t,xv,chart),
                 (t,T.stack((new_x,new_v)),new_chart)
             )

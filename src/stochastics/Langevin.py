@@ -23,7 +23,7 @@ from src.utils import *
 ###############################################################
 # Langevin equations https://arxiv.org/abs/1605.09276
 ###############################################################
-def initialize(M,do_chart_update=None):
+def initialize(M):
     q = M.sym_coords()
     p = M.sym_coordscovector()
     
@@ -45,7 +45,7 @@ def initialize(M,do_chart_update=None):
         return (det,sto,X,T.zeros_like(l),T.zeros_like(s))
 
     def chart_update_Langevin(t,xp,chart,l,s):
-        if do_chart_update is None:
+        if M.do_chart_update is None:
             return (t,xp,chart,l,s)
 
         p = xp[1]
@@ -55,7 +55,7 @@ def initialize(M,do_chart_update=None):
         new_x = M.update_coords(x,new_chart)[0]
         new_p = M.update_covector(x,new_x,new_chart,p)
         
-        return theano.ifelse.ifelse(do_chart_update(x),
+        return theano.ifelse.ifelse(M.do_chart_update(x),
                 (t,xp,chart,l,s),
                 (t,T.stack((new_x,new_p)),new_chart,l,s)
             )
