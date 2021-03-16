@@ -28,7 +28,8 @@ class Manifold(object):
     def __init__(self):
         self.dim = None        
         self.rank = None
-        self.do_chart_update = None # set to relevant function if what updates are desired
+        if not hasattr(self, 'do_chart_update'):
+            self.do_chart_update = None # set to relevant function if what updates are desired
 
     def sym_element(self):
         """ return symbolic element in manifold """
