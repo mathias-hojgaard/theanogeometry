@@ -45,7 +45,7 @@ def initialize(M,f=None):
 
         if v0 is None:
             v0 = np.zeros(M.dim.eval())
-        res = minimize(f, tensor(v0), method='L-BFGS-B', jac=True, options={'disp': False, 'maxiter': 500})
+        res = minimize(f, tensor(v0), method='L-BFGS-B', jac=True, options={'disp': False, 'maxiter': 100})
 
         return (tensor(res.x),res.fun)
 

@@ -29,7 +29,7 @@ def Frechet_mean(Logf, y, x0=None, options=None):
     chart = x0[1]
         
     steps = []
-    steps.append(x0)
+    steps.append(x0[0])
 
     def fopts(x):
         N = len(y)
@@ -57,4 +57,4 @@ def Frechet_mean(Logf, y, x0=None, options=None):
     else:
         mpu.closePool()
 
-    return (res.x, res.fun, np.array(steps))
+    return ((res.x,x0[1]), res.fun, np.array(steps))

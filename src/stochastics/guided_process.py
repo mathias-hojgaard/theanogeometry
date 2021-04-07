@@ -82,18 +82,18 @@ def get_sde_guided(M, sde_f, phi, sqrtCov, A=None, method='DelyonHu', integratio
 
         #     add t1 term for general phi
         #     dxbdxt = theano.gradient.Rop((Gx-x[0]).flatten(),x[0],dx[0]) # use this for general phi
-        t2 = theano.ifelse.ifelse(T.lt(t, Tend - dt / 2),
-                                  -Af(xchart, ytilde, dt * det) / (Tend - t),
+        t2 = theano.ifelse.ifelse(T.lt(t, Tend - 3 * dt / 2),
+                                  -Af(xchart, ytilde, det * dt) / (Tend - t),
                                   # check det term for Stratonovich (correction likely missing)
                                   constant(0.))
-        t34 = theano.ifelse.ifelse(T.lt(tp1, Tend - dt / 2),
+        t34 = theano.ifelse.ifelse(T.lt(tp1, Tend - 3 * dt / 2),
                                    -(Af(xtp1chart, ytildetp1, ytildetp1) - Af(xchart, ytildetp1, ytildetp1)) / (
                                    2 * (Tend - tp1 + dt * T.gt(tp1, Tend - dt / 2))),
                                    # last term in divison is to avoid NaN with non-lazy Theano conditional evaluation
                                    constant(0.))
         log_varphi = t2 + t34
 
-        return (det + T.tensordot(X, h, 1), sto, X, log_likelihood, log_varphi, dW_guided/dt, T.zeros_like(v), *dys_sde)
+        return (det + T.tensordot(X, h, 1), sto, X, log_likelihood, log_varphi/dt, dW_guided/dt, T.zeros_like(v), *dys_sde)
 
     if not use_charts:
         return lambda dW, t, x, log_likelihood, log_varphi, h, v, *ys: sde_guided(dW, t, x, None, log_likelihood, log_varphi, h, v, *ys)
