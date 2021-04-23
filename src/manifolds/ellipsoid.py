@@ -44,7 +44,7 @@ class Ellipsoid(EmbeddedManifold):
 
     def _centered_chart(self,x):
         """ return centered coordinate chart """
-        return x
+        return x/self.params
 
     def get_B(self,v):
         """ R^3 basis with first basis vector v """
@@ -56,9 +56,10 @@ class Ellipsoid(EmbeddedManifold):
         return T.stack((b1,b2,b3),axis=1)
 
     # Logarithm with standard Riemannian metric on S^2
-    def StdLog(self, x,y): 
+    def StdLog(self, x,y):
+        y = y/self.params # from ellipsoid to S^2
         proj = lambda x,y: T.dot(x,y)*x
-        Fx = self.F(x)
+        Fx = self.F(x)/self.params
         v = y-proj(Fx,y)
         theta = T.arccos(T.dot(Fx,y))
         normv = T.nlinalg.norm(v,2)
@@ -66,7 +67,7 @@ class Ellipsoid(EmbeddedManifold):
                 theta/normv*v,
                 T.zeros_like(v)
             )
-        return T.dot(self.invJF((Fx,x[1])),w)
+        return T.dot(self.invJF((Fx,x[1])),self.params*w)
 
     def __init__(self,params=np.array([1.,1.,1.]),chart_center='z',use_spherical_coords=False):
         self.params = theano.shared(np.array(params)) # ellipsoid parameters (e.g. [1.,1.,1.] for sphere)
@@ -74,9 +75,9 @@ class Ellipsoid(EmbeddedManifold):
         self.chart_center = chart_center
 
         if not use_spherical_coords:
-            F = lambda x: T.dot(self.get_B(x[1]),params*T.stack([-(-1+x[0][0]**2+x[0][1]**2),2*x[0][0],2*x[0][1]])/(1+x[0][0]**2+x[0][1]**2))
+            F = lambda x: self.params*T.dot(self.get_B(x[1]),T.stack([-(-1+x[0][0]**2+x[0][1]**2),2*x[0][0],2*x[0][1]])/(1+x[0][0]**2+x[0][1]**2))
             def invF(x):
-                Rinvx = T.slinalg.Solve()(self.get_B(x[1]),x[0])
+                Rinvx = T.slinalg.Solve()(self.get_B(x[1]),x[0]/self.params)
                 return T.stack([Rinvx[1]/(1+Rinvx[0]),Rinvx[2]/(1+Rinvx[0])])
             self.do_chart_update = lambda x: T.le(T.sum(T.square(x[0])),.05) # look for a new chart if false
         # spherical coordinates, no charts
