@@ -30,7 +30,7 @@ def initialize(M):
     def sde_Brownian_coords(dW,t,x,chart):
         gsharpx = M.gsharp((x,chart))
         X = theano.tensor.slinalg.Cholesky()(gsharpx)
-        det = -.5*T.tensordot(gsharpx,M.Gamma_g((x,chart)),((0,1),(0,1)))
+        det = -.5*T.tensordot(gsharpx,M.Gamma_g((x,chart)),((0,1),(1,2)))
         sto = T.tensordot(X,dW,(1,0))
         return (det,sto,X)
     
