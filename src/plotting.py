@@ -92,7 +92,7 @@ def plot_density_estimate(M, obss, alpha=.2, limits=None, border=1.5, bandwidth=
 
 #### Spherical plotting functions
 # plot general function on S2
-def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=None, colorbar=True, border = 1e-2):
+def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=None, vmax = None,colorbar=True, border = 1e-2, cached_fs = None):
         # grids        
         phi, theta = np.meshgrid(np.linspace(0.,2.*np.pi-border,pts),np.linspace(np.pi/2-border,-np.pi/2+border,pts))
         phitheta = np.vstack([phi.ravel(), theta.ravel()]).T
@@ -103,9 +103,15 @@ def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=N
         
         # plot
         ax = plt.gca()
-        if not parallel:
+
+        if not cached_fs is None:
+            print('cached')
+            fs = cached_fs
+        elif not parallel:
+            print('Not parallel')
             fs = np.apply_along_axis(f,1,xs)
         else:
+            print('Parallel')
             try:
                 pf = lambda pars: (f(pars[0]),) # wrapped f for parallel execution
                 mpu.openPool()
@@ -121,13 +127,14 @@ def plot_sphere_f(M, f, alpha=.2, pts=100, cmap = cm.jet, parallel=False, vmin=N
             norm = mpl.colors.Normalize()
             norm.autoscale(fs)
         else:
-            norm = mpl.colors.Normalize(vmin=vmin,vmax=np.max(fs))
+            norm = mpl.colors.Normalize(vmin=vmin,vmax=vmax)
         colors = cmap(norm(fs)).reshape(phi.shape+(4,))
         surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cmap, facecolors = colors, linewidth=0., antialiased=True, alpha=alpha, edgecolor=(0,0,0,0), shade=False)
         m = cm.ScalarMappable(cmap=surf.cmap,norm=norm)
         m.set_array(colors)
         if colorbar:
             plt.colorbar(m, shrink=0.7)
+        return fs, m
 
 # plot density estimate using spherical coordinates
 def plot_sphere_density_estimate(M, obss_M, alpha=.2, bandwidth=0.08, pts=100, cmap = cm.jet):
