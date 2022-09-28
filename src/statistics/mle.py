@@ -19,6 +19,7 @@
 
 from src.setup import *
 from src.utils import *
+from tqdm import tqdm
 
 def iterative_mle(obss,log_p_T,update_thetas,options):
     try:
@@ -45,7 +46,7 @@ def iterative_mle(obss,log_p_T,update_thetas,options):
         for j, theta in enumerate(thetas):
             thetass[j][0] = theta
         mpu.openPool()
-        for i in range(options['epochs']):
+        for i in tqdm(range(options['epochs'])):
             if not chain_sampler:
                 sol = mpu.pool.imap(partial(log_p_T, thetas), \
                                     mpu.inputArgs(obss, np.random.randint(1000, size=obss.shape[0])))
