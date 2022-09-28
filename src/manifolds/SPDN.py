@@ -108,8 +108,8 @@ class SPDN(EmbeddedManifold):
             #draw ellipsoid, from https://stackoverflow.com/questions/7819498/plotting-ellipsoid-with-matplotlib
             U, ss, rotation = np.linalg.svd(x)
             radii = np.sqrt(ss)
-            u = np.linspace(0., 2.*np.pi, 20)
-            v = np.linspace(0., np.pi, 10)
+            u = np.linspace(0., 2.*np.pi, 40)
+            v = np.linspace(0., np.pi, 20)
             x = radii[0] * np.outer(np.cos(u), np.sin(v))
             y = radii[1] * np.outer(np.sin(u), np.sin(v))
             z = radii[2] * np.outer(np.ones_like(u), np.cos(v))

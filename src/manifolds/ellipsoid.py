@@ -158,7 +158,7 @@ class Ellipsoid(EmbeddedManifold):
 
     #    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
         #draw ellipsoid
-        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+        u, v = np.mgrid[0:2*np.pi:40j, 0:np.pi:20j]
         x=self.params.eval()[0]*np.cos(u)*np.sin(v)
         y=self.params.eval()[1]*np.sin(u)*np.sin(v)
         z=self.params.eval()[2]*np.cos(v)

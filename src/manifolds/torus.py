@@ -131,7 +131,7 @@ class Torus(EmbeddedManifold):
 
     #    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
         #draw ellipsoid
-        u, v = np.mgrid[-np.pi:np.pi:20j, -np.pi:np.pi:10j]
+        u, v = np.mgrid[-np.pi:np.pi:40j, -np.pi:np.pi:20j]
         x = np.zeros(u.shape)
         y = np.zeros(u.shape)
         z = np.zeros(u.shape)
@@ -164,7 +164,7 @@ class Torus(EmbeddedManifold):
         plt.xlabel('x')
         plt.ylabel('y')
 
-        u, v = np.mgrid[-np.pi:np.pi:40j, -np.pi:np.pi:20j]
+        u, v = np.mgrid[-np.pi:np.pi:20j, -np.pi:np.pi:10j]
         x = np.zeros(u.shape)
         y = np.zeros(u.shape)
         z = np.zeros(u.shape)
