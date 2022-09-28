@@ -134,7 +134,7 @@ class Ellipsoid(EmbeddedManifold):
         newfig3d()
 
     def plot(self,rotate=None,alpha=None,lw=0.3):
-        ax = plt.gca(projection='3d')
+        ax = plt.gca()
         x = np.arange(-10,10,1)
         ax.w_xaxis.set_major_locator(ticker.FixedLocator(x))
         ax.w_yaxis.set_major_locator(ticker.FixedLocator(x))
@@ -169,7 +169,7 @@ class Ellipsoid(EmbeddedManifold):
 
 
     def plot_field(self, field,lw=.3):
-        ax = plt.gca(projection='3d')
+        ax = plt.gca()
         x = np.arange(-10,10,1)
         ax.w_xaxis.set_major_locator(ticker.FixedLocator(x))
         ax.w_yaxis.set_major_locator(ticker.FixedLocator(x))
