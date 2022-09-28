@@ -68,16 +68,17 @@ class SPDN(EmbeddedManifold):
         plt.ylabel('y')
 
 
-    def plot_path(self, x,color_intensity=1.,color=None,linewidth=3.,prevx=None,ellipsoid=None,i=None,maxi=None):
+    def plot_path(self, x,color_intensity=1.,color=None,linewidth=3.,alpha = 1.,prevx=None,ellipsoid=None,i=None,maxi=None):
         assert(len(x.shape)>1)
         for i in range(x.shape[0]):
             self.plotx(x[i],
                   linewidth=linewidth if i==0 or i==x.shape[0]-1 else .3,
                   color_intensity=color_intensity if i==0 or i==x.shape[0]-1 else .7,
+                  alpha = alpha,
                   prevx=x[i-1] if i>0 else None,ellipsoid=ellipsoid,i=i,maxi=x.shape[0])
         return
 
-    def plotx(self, x,color_intensity=1.,color=None,linewidth=3.,prevx=None,ellipsoid=None,i=None,maxi=None):
+    def plotx(self, x,color_intensity=1.,color=None,linewidth=3.,alpha = 1.,prevx=None,ellipsoid=None,i=None,maxi=None):
         x = x.reshape((self.N.eval(),self.N.eval()))
         (w,V) = np.linalg.eigh(x)
         s = np.sqrt(w[np.newaxis,:])*V # scaled eigenvectors
@@ -90,7 +91,7 @@ class SPDN(EmbeddedManifold):
         colors = color_intensity*np.array([[1,0,0],[0,1,0],[0,0,1]])
         if ellipsoid is None:
             for i in range(s.shape[1]):
-                plt.quiver(0,0,0,s[0,i],s[1,i],s[2,i],pivot='tail',linewidth=linewidth,color=colors[i] if color is None else color,arrow_length_ratio=.15,length=1)
+                plt.quiver(0,0,0,s[0,i],s[1,i],s[2,i],pivot='tail',linewidth=linewidth,alpha = alpha,color=colors[i] if color is None else color,arrow_length_ratio=.15,length=1)
                 if prevx is not None:
                     plt.plot(ss[:,0,i],ss[:,1,i],ss[:,2,i],linewidth=.3,color=colors[i])
         else:
@@ -117,5 +118,5 @@ class SPDN(EmbeddedManifold):
                     [x[l,k],y[l,k],z[l,k]] = np.dot([x[l,k],y[l,k],z[l,k]], rotation)
             ax.plot_surface(x, y, z, facecolors=cm.winter(y/np.amax(y)), linewidth=0, alpha=ellipsoid['alpha'])
             for i in range(s.shape[1]):
-                plt.quiver(0,0,0,s[0,i],s[1,i],s[2,i],pivot='tail',linewidth=linewidth,color=colors[i] if color is None else color,arrow_length_ratio=.15,length=1)
+                plt.quiver(0,0,0,s[0,i],s[1,i],s[2,i],pivot='tail',linewidth=linewidth,alpha = alpha, color=colors[i] if color is None else color,arrow_length_ratio=.15,length=1)
             plt.axis('off')

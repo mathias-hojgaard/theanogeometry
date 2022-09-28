@@ -219,7 +219,7 @@ class EmbeddedManifold(Manifold):
             
     # plot path
     def plot_path(self, xs, u=None, vs=None, v_steps=None, i0=0, color='b', 
-                  color_intensity=1., linewidth=1., s=15., prevx=None, prevchart=None, last=True):
+                  color_intensity=1., linewidth=1.,alpha = 0.1, s=15., prevx=None, prevchart=None, last=True):
         
         if vs is not None and v_steps is not None:
             v_steps = np.arange(0,n_steps.eval())
@@ -241,6 +241,7 @@ class EmbeddedManifold(Manifold):
                        color=color,
                        color_intensity=color_intensity if i==0 or i==N-1 else .7,
                        linewidth=linewidth,
+                       alpha = alpha,
                        s=s,
                        prevx=prevx,
                        last=i==(N-1))
@@ -249,7 +250,7 @@ class EmbeddedManifold(Manifold):
 
     # plot x. x can be either in coordinates or in R^3
     def plotx(self, x, u=None, v=None, v_steps=None, i=0, color='b',               
-              color_intensity=1., linewidth=1., s=15., prevx=None, prevchart=None, last=True):
+              color_intensity=1., linewidth=1.,alpha = 1., s=15., prevx=None, prevchart=None, last=True):
 
         assert(type(x) == type(()) or x.shape[0] == self.emb_dim.eval())
         
@@ -271,18 +272,18 @@ class EmbeddedManifold(Manifold):
                 Fprevx = prevx
                 prevx = (self.invFf((Fprevx,chart)),chart)
 
-        ax = plt.gca(projection='3d')
+        ax = plt.gca()
         if prevx is None or last:
             ax.scatter(Fx[0],Fx[1],Fx[2],color=color,s=s)
         if prevx is not None:
             xx = np.stack((Fprevx,Fx))
-            ax.plot(xx[:,0],xx[:,1],xx[:,2],linewidth=linewidth,color=color)
+            ax.plot(xx[:,0],xx[:,1],xx[:,2],linewidth=linewidth, alpha = alpha, color=color)
 
         if u is not None:
             Fu = np.dot(self.JFf(x), u)
             ax.quiver(Fx[0], Fx[1], Fx[2], Fu[0], Fu[1], Fu[2],
                       pivot='tail',
-                      arrow_length_ratio = 0.15, linewidths=linewidth, length=0.5,
+                      arrow_length_ratio = 0.15, linewidths=linewidth, alpha = alpha, length=0.5,
                       color='black')
 
         if v is not None:
@@ -290,7 +291,7 @@ class EmbeddedManifold(Manifold):
                 v = np.dot(self.JFf(x), v)
                 ax.quiver(Fx[0], Fx[1], Fx[2], v[0], v[1], v[2],
                           pivot='tail',
-                          arrow_length_ratio = 0.15, linewidths=linewidth, length=0.5,
+                          arrow_length_ratio = 0.15, linewidths=linewidth, alpha = alpha, length=0.5,
                         color='black')
 
     def __str__(self):

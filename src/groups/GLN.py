@@ -69,16 +69,17 @@ class GLN(LieGroup):
     def __str__(self):
         return "GL(%d) (dimension %d)" % (self.N.eval(),self.dim.eval())        
 
-    def plot_path(self, g,color_intensity=1.,color=None,linewidth=3.,prevg=None):
+    def plot_path(self, g,color_intensity=1.,color=None,linewidth=3., alpha = 0.1,prevg=None):
         assert(len(g.shape)>2)
         for i in range(g.shape[0]):
             self.plotg(g[i],
                   linewidth=linewidth if i==0 or i==g.shape[0]-1 else .3,
                   color_intensity=color_intensity if i==0 or i==g.shape[0]-1 else .7,
+                  alpha = alpha,
                   prevg=g[i-1] if i>0 else None)
         return
 
-    def plotg(self, g,color_intensity=1.,color=None,linewidth=3.,prevg=None):
+    def plotg(self, g,color_intensity=1.,color=None,linewidth=3., alpha = 0.1,prevg=None):
         s0 = np.eye(self.N.eval()) # shape
         s = np.dot(g,s0) # rotated shape
         if prevg is not None:
@@ -86,7 +87,7 @@ class GLN(LieGroup):
 
         colors = color_intensity*np.array([[1,0,0],[0,1,0],[0,0,1]])
         for i in range(s.shape[1]):
-            plt.quiver(0,0,0,s[0,i],s[1,i],s[2,i],pivot='tail',linewidth=linewidth,color=colors[i] if color is None else color,arrow_length_ratio=.15,length=1)
+            plt.quiver(0,0,0,s[0,i],s[1,i],s[2,i],pivot='tail',linewidth=linewidth,color=colors[i] if color is None else color,arrow_length_ratio=.15,length=1, alpha=alpha)
             if prevg is not None:
                 ss = np.stack((prevs,s))
                 plt.plot(ss[:,0,i],ss[:,1,i],ss[:,2,i],linewidth=.3,color=colors[i])
